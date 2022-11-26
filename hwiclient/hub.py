@@ -1,4 +1,5 @@
 from __future__ import annotations
+from abc import ABC, abstractmethod
 from twisted.internet import defer, reactor
 from twisted.internet.endpoints import TCP4ClientEndpoint
 from twisted.internet.protocol import ClientFactory
@@ -6,32 +7,53 @@ from twisted.conch.telnet import TelnetTransport, StatefulTelnetProtocol
 from twisted.python import log
 import logging
 from threading import Thread
-from typing import Optional
-from . import utils
+from typing import Optional, Any
+from hwiclient import utils
+from hwiclient import commands
 HwiUtils = utils.HwiUtils
 
 _LOGGER = logging.getLogger(__name__)
 
-from .. import keypadstore
-from . import models
-HwiKeypadStore = keypadstore.HwiKeypadStore
+from hwiclient import keypadstore
+from hwiclient import models
+DeviceRepository = keypadstore.DeviceRepository
 
 class Hub(object):
-    from homeassistant.core import HomeAssistant
-    def __init__(self, hass: HomeAssistant, host: str, port: int, username: str, password: str) -> None:
-        self._hass = hass
+    def __init__(self, bus: EventBus, host: str, port: int, username: str, password: str, homeworks_config: dict[str, Any]) -> None:
+        self._bus = bus
         self._host = host
         self._port = port
         self._username = username
         self._password = password
+        self._homeworks_config = homeworks_config
+        self._devices = DeviceRepository()
+        self._devices.set_parsed_objects(self._homeworks_config)
         
-    def get_keypad_at_address(self, keypad_address) -> Optional[models.HwiKeypad]:
-        return HwiKeypadStore().get_keypad_at_address(keypad_address)
+    @property    
+    def devices(self) -> DeviceRepository:
+        return self._devices
+    
+    def setup(self, on_logged_in):
+        HwiTcpManager().setup(host =self._host, port=self._port, username=self._username,password= self._password, hub=self, bus= self._bus, on_logged_in=on_logged_in)
+    
+    def enqueue_command(self, command: commands.HubCommand):
+        # TODO: actually use a queue
+        command.execute(self)
     
     @property
     def sender(self) -> HwiPacketSender:
         return HwiTcpManager().sender
     
+class EventBus(ABC):
+    @abstractmethod
+    def fire(self, event: str, obj: Any):
+        pass
+    
+class LoggerEventBus(EventBus):
+    def fire(self, event: str, obj: Any):
+        _LOGGER.info(f"event fired {event}: {obj}")
+    
+
 
 class SenderAdapter(object):
     def __init__(self, packet_sender: HwiPacketSender):
@@ -52,7 +74,7 @@ class HwiTcpManager(object):
     def logged_in(self) -> bool:
         return HwiTcpManager().login_state == "logged_in"
 
-    def setup(self, host, port, username, password, hass):
+    def setup(self, host: str, port: int, username: str, password: str, hub: Hub, bus: EventBus, on_logged_in):
         if self.sender != None:
             _LOGGER.warning("WARNING SETUP CALLED MORE THAN ONCE")
 
@@ -62,11 +84,11 @@ class HwiTcpManager(object):
         self._password = password
 
         self.sender = HwiPacketSender()
-        self.receiver = HwiPacketReceiver(hass)
+        self.receiver = HwiPacketReceiver(hub, bus, on_logged_in)
         self.cmd = TelnetClientCommand("", '')
         self.cmd.connect(self._host, self._port)
 
-        Thread(target=reactor.run, args=(False,)).start()
+        Thread(target=reactor.run, args=(False,)).start()  # type: ignore
 
         pass
 
@@ -296,8 +318,11 @@ class HwiPacketReceiver(PacketReceiver):
     _command_keypad_led_status = "KLS"
     _has_enabled_monitoring = False
 
-    def __init__(self, hass):
-        self._hass = hass
+    def __init__(self, hub: Hub, bus: EventBus, on_logged_in_callback):
+        self._hub = hub
+        self._bus = bus
+        self._has_called_callback = False
+        self._on_logged_in_callback = on_logged_in_callback
 
     def get_sender(self) -> HwiPacketSender:
         sender = HwiTcpManager().sender
@@ -347,7 +372,10 @@ class HwiPacketReceiver(PacketReceiver):
         if self._has_enabled_monitoring == False:
             self._has_enabled_monitoring = True
             self.get_sender().send_monitor_packet()
-        pass
+        elif not self._has_called_callback:
+            self._has_called_callback = True
+            self._on_logged_in_callback()
+        
 
     def on_ready_for_login(self):
         HwiTcpManager().login_state = "ready_for_login"
@@ -357,7 +385,6 @@ class HwiPacketReceiver(PacketReceiver):
 
     def on_logged_in(self):
         HwiTcpManager().login_state = "logged_in"
-        pass
 
     def on_login_incorrect(self):
         # we dont need to resend login since the pipe will auto write LOGIN: prompt
@@ -367,15 +394,15 @@ class HwiPacketReceiver(PacketReceiver):
         if string.startswith("Timeclock Sunset Event"):
             # Sunset event
             _LOGGER.warning("Captured timeclock sunset")
-            self._hass.bus.fire("hwi_timeclock_event", {
+            self._bus.fire("hwi_timeclock_event", {
                                 "kind": "sunset", "raw_data": string})
         elif string.startswith("Timeclock Real Time Event"):
             _LOGGER.warning("Captured timeclock real time")
-            self._hass.bus.fire("hwi_timeclock_event", {
+            self._bus.fire("hwi_timeclock_event", {
                                 "kind": "realtime", "raw_data": string})
         elif string.startswith("Timeclock Sunrise Event"):
             _LOGGER.warning("Captured timeclock sunrise")
-            self._hass.bus.fire("hwi_timeclock_event", {
+            self._bus.fire("hwi_timeclock_event", {
                                 "kind": "sunrise", "raw_data": string})
         pass
 
@@ -385,7 +412,7 @@ class HwiPacketReceiver(PacketReceiver):
         if len(args) >= 2:
             keypad_addr = args[0]
             led_states = args[1]
-            keypad = HwiKeypadStore().get_keypad_at_address(
+            keypad = self._hub.devices.get_keypad_at_address(
                 HwiUtils.encode_keypad_address(keypad_addr))
             if keypad != None:
                 keypad.led_states = led_states
@@ -399,10 +426,10 @@ class HwiPacketReceiver(PacketReceiver):
         if len(args) >= 2:
             keypad_addr = args[0]
             button_num = int(args[1])
-            keypad = HwiKeypadStore().get_keypad_at_address(
+            keypad = self._hub.devices.get_keypad_at_address(
                 HwiUtils.encode_keypad_address(keypad_addr))
             if keypad != None:
-                self._hass.bus.fire("hwi_keypad_button_pressed", {
+                self._bus.fire("hwi_keypad_button_pressed", {
                                     "keypad_address": keypad.address, "button_number": button_num})
             else:
                 _LOGGER.warning("Keypad not found")
@@ -414,10 +441,10 @@ class HwiPacketReceiver(PacketReceiver):
         if len(args) >= 2:
             keypad_addr = args[0]
             button_num = int(args[1])
-            keypad = HwiKeypadStore().get_keypad_at_address(
+            keypad = self._hub.devices.get_keypad_at_address(
                 HwiUtils.encode_keypad_address(keypad_addr))
             if keypad != None:
-                self._hass.bus.fire("hwi_keypad_button_released", {
+                self._bus.fire("hwi_keypad_button_released", {
                                     "keypad_address": keypad.address, "button_number": button_num})
             else:
                 _LOGGER.warning("Keypad not found")
@@ -428,10 +455,10 @@ class HwiPacketReceiver(PacketReceiver):
         if len(args) >= 2:
             keypad_addr = args[0]
             button_num = int(args[1])
-            keypad = HwiKeypadStore().get_keypad_at_address(
+            keypad = self._hub.devices.get_keypad_at_address(
                 HwiUtils.encode_keypad_address(keypad_addr))
             if keypad != None:
-                self._hass.bus.fire("hwi_keypad_button_double_tapped", {
+                self._bus.fire("hwi_keypad_button_double_tapped", {
                                     "keypad_address": keypad.address, "button_number": button_num})
             else:
                 _LOGGER.warning("Keypad not found")
@@ -442,10 +469,10 @@ class HwiPacketReceiver(PacketReceiver):
         if len(args) >= 2:
             keypad_addr = args[0]
             button_num = int(args[1])
-            keypad = HwiKeypadStore().get_keypad_at_address(
+            keypad = self._hub.devices.get_keypad_at_address(
                 HwiUtils.encode_keypad_address(keypad_addr))
             if keypad != None:
-                self._hass.bus.fire("hwi_keypad_button_hold", {
+                self._bus.fire("hwi_keypad_button_hold", {
                                     "keypad_address": keypad.address, "button_number": button_num})
             else:
                 _LOGGER.warning("Keypad not found")
@@ -455,16 +482,16 @@ class HwiPacketReceiver(PacketReceiver):
         _LOGGER.warning("dimmer level update: " + str(args))
         keypad_address = args[0]
         level = float(args[1])
-        shade = HwiKeypadStore().get_shade_at_address(
+        shade = self._hub.devices.get_shade_at_address(
             HwiUtils.encode_shade_address(keypad_address))
 
         if shade != None:
             shade.on_dimmer_level_update(level)
         else:
-            zone = HwiKeypadStore().get_zone_at_address(
+            zone = self._hub.devices.get_zone_at_address(
                 HwiUtils.encode_zone_address(keypad_address))
             if zone != None:
-                self._hass.bus.fire("hwi_zone_dimmer_level_updated", {
+                self._bus.fire("hwi_zone_dimmer_level_updated", {
                                     "zone_address": keypad_address, "dimmer_level": level})
                 # zone.on_brightness_changed(level)
 

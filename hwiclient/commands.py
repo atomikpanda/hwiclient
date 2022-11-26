@@ -1,17 +1,18 @@
 from __future__ import annotations
-from . import models
-from . import hub
-from . import utils
-HwiUtils = hub.HwiUtils
-Hub = hub.Hub
-
-
-class HubCommand(object):
+from hwiclient import models
+import hwiclient.hub
+from hwiclient.utils import HwiUtils
+from abc import ABC, abstractmethod
+class HubCommand(ABC):
     def __init__(self):
         pass
 
-    def execute(self, hub: Hub):
-        raise NotImplementedError
+    @abstractmethod
+    def execute(self, hub: hwiclient.hub.Hub):
+        pass
+    
+    def enqueue(self, hub: hwiclient.hub.Hub):
+        hub.enqueue_command(self)
 
 
 class ButtonPress(HubCommand):
@@ -19,7 +20,7 @@ class ButtonPress(HubCommand):
         super().__init__()
         self._button = button
 
-    def execute(self, hub: Hub):
+    def execute(self, hub: hwiclient.hub.Hub):
         hub.sender.send_keypad_button_press(
             self._button.keypad.address, self._button.number)
 
@@ -30,7 +31,7 @@ class SetZoneBrightness(HubCommand):
         self._zone = zone
         self._brightness_percent = brightness_percent
 
-    def execute(self, hub: Hub):
+    def execute(self, hub: hwiclient.hub.Hub):
         hub.sender.send_dim_light(dimmer_address=self._zone.address,
                                   level=self._brightness_percent)
         
@@ -42,14 +43,14 @@ class ReadDimmerLevel(HubCommand):
     def __init__(self, zone: models.HwiZone):
         self._zone = zone
         
-    def execute(self, hub: Hub):
+    def execute(self, hub: hwiclient.hub.Hub):
         hub.sender.send_read_dimmer_level(self._zone.address)
         
 class ReadKeypadLedStatus(HubCommand):
     def __init__(self, keypad: models.HwiKeypad):
         self._keypad = keypad
     
-    def execute(self, hub: Hub):
+    def execute(self, hub: hwiclient.hub.Hub):
         hub.sender.send_read_keypad_led_status(self._keypad.address)
 
 class SetShadePosition(HubCommand):
@@ -59,7 +60,7 @@ class SetShadePosition(HubCommand):
         self._shade = shade
         self._position = position
         
-    def execute(self, hub: Hub):
+    def execute(self, hub: hwiclient.hub.Hub):
         hub.sender.send_fade_shade_dim(self._shade.address, level = self._position)
     
 class OpenShade(SetShadePosition):
@@ -78,6 +79,6 @@ class Sequence(HubCommand):
         super().__init__()
         self._commands = commands
     
-    def execute(self, hub: Hub):
+    def execute(self, hub: hwiclient.hub.Hub):
         for cmd in self._commands:
             cmd.execute(hub)

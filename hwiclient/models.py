@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import Optional
-from . import utils
-from . import commands
+import hwiclient.utils as utils
 HwiUtils = utils.HwiUtils
+import hwiclient.commands as commands
 import logging
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class HwiShade(object):
 
 class HwiZone(object):
 
-    def __init__(self, zone_number: int, zone_address: str, zone_type: str):
+    def __init__(self, zone_number: str, zone_address: str, zone_type: str):
         self._zone_number = zone_number
         self._zone_address = zone_address
         self._zone_type = zone_type
@@ -30,7 +30,7 @@ class HwiZone(object):
         pass
 
     @property
-    def number(self) -> int:
+    def number(self) -> str:
         return self._zone_number
 
     @property
@@ -40,6 +40,14 @@ class HwiZone(object):
     @property
     def zone_type(self) -> str:
         return self._zone_type
+    
+    @property
+    def is_dimmable(self) -> bool:
+        return self._zone_type == "DIMMER" or self._zone_type == "FAN"
+    
+    @property
+    def is_fan(self) -> bool:
+        return self._zone_type == "FAN"
 
     def add_brightness_listener(self, listener):
         self._listeners.append(listener)
@@ -57,28 +65,56 @@ class HwiZone(object):
             listener.on_brightness_changed(self)
         pass
 
+class HwiZoneGroup(object):
+    def __init__(self, zones: list[HwiZone]):
+        self._zones = zones
+        for zone in self.zones:
+            zone.add_brightness_listener(self)
+        self._has_dimmer = self._at_least_one_zone_is_dimmable()
+    
+    @property
+    def has_dimmer(self) -> bool:
+        return self._has_dimmer
+    
+    @property
+    def zones(self) -> list[HwiZone]:
+        return self._zones
+    
+    def brightness_percent(self) -> float:
+        return HwiUtils.calculate_zones_brightness_percent(self._zones)
+
+    def _at_least_one_zone_is_dimmable(self) -> bool:
+        for zone in self._zones:
+            if zone.is_dimmable:
+                return True
+        return False
+    
+    # Brightness in a zone within this group was changed.
+    def on_brightness_changed(self, zone):
+        self._brightness = self.recalculate_brightness()
+        if self.brightness_changed_listener != None:
+            self.brightness_changed_listener.on_brightness_changed(
+                self._brightness)
+        pass
+
+    def read_all_dimmer_levels(self) -> commands.HubCommand:
+        cmds = []
+        for zone in self._zones:
+            cmds.append(commands.ReadDimmerLevel(zone))
+        return commands.Sequence(cmds)
 
 # Note button 23 and 24 are usually the dimmer arrows
 class HwiButton(object):
-    # def press(self):
-    #     hub.sender.press_button(self)
-    #     commands.ButtonPress(self)
-
-    # def turn_on(self) -> commands.HubCommand:
-    #     if self.is_led_on == False:
-    #         hub.sender.press_button(self)
-    #         return commands.ButtonPress(self)
-
-    # def turn_off(self):
-    #     if self.is_led_on == True:
-    #         hub.sender.press_button(self)
+    def press(self) -> commands.HubCommand:
+        return commands.ButtonPress(self)
 
     def set_brightness(self, brightness_percent: float) -> commands.HubCommand:
         commands_list: list[commands.HubCommand] = []
         
+        self._zones.
         for zone in self.zones:
             zone._brightness_percent = brightness_percent
-            if zone.zone_type == "FAN":
+            if zone.is_fan:
                 fan_speeds = 4
                 # Patio Fan
                 if self._keypad.address == "[1:6:4]" and self._number == 4:
@@ -104,32 +140,14 @@ class HwiButton(object):
             cmds.append(commands.ReadDimmerLevel(zone))
         return commands.Sequence(cmds)
 
-    def __init__(self, number: int, name: str, zones: list[HwiZone], keypad: HwiKeypad):
+    def __init__(self, number: int, name: str, zones: HwiZoneGroup, keypad: HwiKeypad):
         self._keypad = keypad
         self._number = number
         self._name = name
         self._zones = zones
-        self._has_dimmer = False
         self._brightness = 0
         self._led_changed_listener = None
         self._brightness_changed_listener = None
-
-        for zone in self.zones:
-            zone.add_brightness_listener(self)
-
-        self._has_dimmer = self._at_least_one_zone_is_dimmable()
-
-        pass
-
-    def _at_least_one_zone_is_dimmable(self) -> bool:
-        for zone in self.zones:
-            if zone.zone_type == "DIMMER" or zone.zone_type == "FAN":
-                return True
-        return False
-
-    @property
-    def has_dimmer(self) -> bool:
-        return self._has_dimmer
 
     @property
     def brightness(self) -> float:
@@ -144,13 +162,8 @@ class HwiButton(object):
         return self._name
 
     @property
-    def zones(self) -> list[HwiZone]:
+    def zones(self) -> HwiZoneGroup:
         return self._zones
-
-    @keypad.setter
-    def keypad(self, keypad: HwiKeypad):
-        self._keypad = keypad
-        pass
 
     @property
     def led_changed_listener(self):
@@ -181,14 +194,6 @@ class HwiButton(object):
             _LOGGER.warning(self._name + " is on")
         else:
             _LOGGER.warning(self._name + " is off")
-        pass
-
-    # Brightness in a zone that this button controls was changed.
-    def on_brightness_changed(self, zone):
-        self._brightness = self.recalculate_brightness()
-        if self.brightness_changed_listener != None:
-            self.brightness_changed_listener.on_brightness_changed(
-                self._brightness)
         pass
 
     def recalculate_brightness(self) -> float:
@@ -252,16 +257,22 @@ class HwiKeypad(object):
         # SUPER HELPFUL FOR DEBUGGING
         _LOGGER.warning(self.debug_description())
 
-    def is_led_on(self, button_number) -> bool:
+    def is_led_on(self, button_number: int) -> bool:
         button_idx = button_number - 1
         if button_idx >= 0 and button_idx < len(self.led_states):
             return self.led_states[button_idx] == "1"
         return False
 
-    def button_with_number(self, number) -> Optional[HwiButton]:
+    def button_with_number(self, number: int) -> Optional[HwiButton]:
         # return self._buttons_dict[str(number)]
         if number in self._buttons_dict:
             return self._buttons_dict[number]
+        return None
+
+    def button_with_name(self, name: str) -> Optional[HwiButton]:
+        for btn in self.buttons:
+            if btn.name == name:
+                return btn
         return None
 
     def debug_description(self):
@@ -296,7 +307,7 @@ class HwiButtonBuilder(object):
         assert self._name is not None
         assert self._number is not None
         assert self._keypad is not None
-        return HwiButton(name=self._name, number = self._number, zones=self._zones,keypad=self._keypad)
+        return HwiButton(name=self._name, number = self._number, zones=HwiZoneGroup(self._zones),keypad=self._keypad)
 
 class HwiKeypadBuilder(object):
     def __init__(self):
