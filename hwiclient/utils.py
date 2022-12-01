@@ -1,24 +1,5 @@
 import re
-from bisect import bisect_left
 
-
-def take_closest(myList, myNumber):
-    """
-    Assumes myList is sorted. Returns closest value to myNumber.
-
-    If two numbers are equally close, return the smallest number.
-    """
-    pos = bisect_left(myList, myNumber)
-    if pos == 0:
-        return myList[0]
-    if pos == len(myList):
-        return myList[-1]
-    before = myList[pos - 1]
-    after = myList[pos]
-    if after - myNumber < myNumber - before:
-        return after
-    else:
-        return before
     
 class HwiUtils(object):
 
@@ -27,8 +8,8 @@ class HwiUtils(object):
         num_zones = len(zones)
         max_percent = 0
         for zone in zones:
-            if zone.zone_type == "DIMMER" or zone.zone_type == "FAN":
-                max_percent = max(max_percent, zone.brightness_percent)
+            if zone.is_dimmable:
+                max_percent = max(max_percent, zone.level)
 
         return max_percent
 
@@ -100,27 +81,4 @@ class HwiUtils(object):
         removed = HwiUtils._remove_prefix(encoded_zone_addr, "zone_")
         return "[" + (":".join(removed.split("_"))) + "]"
 
-    @staticmethod
-    def safe_fan_brightness(num_speeds_excluding_zero, brightness_percent):
-        increment = 100.0/float(num_speeds_excluding_zero)
-        safe_speeds = []
-        for i in range(0, int(num_speeds_excluding_zero) + 1):
-            safe_speeds.append(increment * i)
 
-        return take_closest(safe_speeds, brightness_percent)
-
-    @staticmethod
-    def safe_fan_brightness_legacy(brightness_percent):
-
-        if brightness_percent < 20:
-            return 0  # off
-        elif brightness_percent >= 20 and brightness_percent < 40:
-            return 25  # low
-        elif brightness_percent >= 40 and brightness_percent < 60:
-            return 50  # med
-        elif brightness_percent >= 60 and brightness_percent < 80:
-            return 75  # med high
-        elif brightness_percent >= 80 and brightness_percent <= 110:
-            return 100  # high
-        else:
-            return 0

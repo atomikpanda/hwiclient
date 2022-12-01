@@ -1,0 +1,103 @@
+from .device import DeviceAddress
+from .dimmer import DimmerDevice, DimmerDeviceType
+from .light import LightDimmerType
+from .shade import ShadeDimmerType
+from .fan import FanDimmerType
+from .switch import SwitchDimmerType
+from .keypad import Keypad
+import yaml
+from typing import Optional, Any
+
+
+class DeviceRepository(object):
+
+    def __init__(self, homeworks_config: Optional[dict[str, Any]]):
+        self._keypads: dict[str, Keypad] = {}
+        self._dimmers: dict[str, DimmerDevice] = {}
+        if homeworks_config is not None:
+            self._add_from_yaml_dict(homeworks_config)
+
+    def add_from_yaml(self, yaml_filepath):
+        with open(yaml_filepath, 'r') as file:
+            yaml_dict = yaml.safe_load(file)
+            self._add_from_yaml_dict(yaml_dict)
+
+    def _make_dimmer_device(self, device_dict: dict, room_name: str, device_type: DimmerDeviceType) -> DimmerDevice:
+        return DimmerDevice(zone_number=device_dict['number'], address=DeviceAddress(device_dict['address']),
+                                   name=device_dict['name'], device_type=device_type, room=room_name)
+
+    def _add_from_yaml_dict(self, yaml_dict: dict[str, Any]):
+        for room_name, room in yaml_dict['devices'].items():
+            if 'dimmers' in room:
+                for light in room['dimmers']:
+                    self.add_dimmer(self._make_dimmer_device(
+                        light, room_name, LightDimmerType()))
+            if 'switches' in room:
+                for switch in room['switches']:
+                    self.add_dimmer(self._make_dimmer_device(
+                        switch, room_name, SwitchDimmerType()))
+            if 'fans' in room:
+                for fan in room['fans']:
+                    fan_speeds = fan.get('speeds', 4)
+                    self.add_dimmer(self._make_dimmer_device(
+                        fan, room_name, FanDimmerType(fan_speeds)))
+            if 'shades' in room:
+                for shade in room['shades']:
+                    self.add_dimmer(self._make_dimmer_device(
+                        shade, room_name, ShadeDimmerType()))
+
+    def add_dimmer(self, zone: DimmerDevice) -> None:
+        self._dimmers[zone.address.encoded] = zone
+
+    def add_keypad(self, keypad: Keypad) -> None:
+        self._keypads[keypad.address.encoded] = keypad
+
+    def get_keypad_named(self, keypad_name: str) -> Optional[Keypad]:
+        for keypad_address, keypad in self._keypads.items():
+            if keypad.name == keypad_name:
+                return keypad
+        return None
+
+    def get_keypad_at_address(self, keypad_address: str) -> Optional[Keypad]:
+        if keypad_address in self._keypads:
+            return self._keypads[keypad_address]
+        else:
+            return None
+
+    def dimmer_device_at_address(self, address: DeviceAddress) -> Optional[DimmerDevice]:
+        if address.encoded in self._dimmers:
+            return self._dimmers[address.encoded]
+        else:
+            return None
+
+    def find_dimmer_device_named(self, zone_name: str, room_name: Optional[str] = None) -> Optional[DimmerDevice]:
+        for zone_address, zone in self._dimmers.items():
+            if zone.name == zone_name and room_name is None:
+                return zone
+            elif zone.name == zone_name and zone.room == room_name:
+                return zone
+        return None
+    
+    def all_dimmer_devices(self, room_name: Optional[str] = None) -> list[DimmerDevice]:
+        if room_name is None:
+            return list(self._dimmers.values())
+        return [dimmer for dimmer in self._dimmers.values() if dimmer.room == room_name]
+
+    def add_all_entities(self, add_entities):
+        raise NotImplementedError
+        # entities = []
+        # for keypad_addr, keypad in self._parsed_objects.items():
+        #     for btn in keypad.buttons:
+        #         entities.append(light.HwiLight(keypad, btn))
+
+        # for shade_addr, shade in self._shade_objects.items():
+        #     entities.append(shade)
+
+        # add_entities(entities)
+        # pass
+
+    # def __new__(cls):
+    #     if cls._instance is None:
+    #         cls._instance = super(DeviceRepository, cls).__new__(cls)
+    #         # Put any initialization here.
+    #     return cls._instance
