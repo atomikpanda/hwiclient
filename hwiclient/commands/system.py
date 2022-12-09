@@ -1,17 +1,18 @@
-from datetime import timedelta
-from .hub import HubActionCommand
-from typing import TYPE_CHECKING
-from ..models import Time
+# from datetime import timedelta
 
-from ..hub import Hub
-if TYPE_CHECKING:
-    from ..device import DeviceAddress
+# from .sender import CommandSender
+# from .hub import HubActionCommand
+# from typing import TYPE_CHECKING
+# from ..models import Time
 
-class LoginCommand(HubActionCommand):
-    def __init__(self, username: str, password: str):
-        self._username = username
-        self._password = password
+# if TYPE_CHECKING:
+#     from ..device import DeviceAddress
+
+# class LoginCommand(HubActionCommand):
+#     def __init__(self, username: str, password: str):
+#         self._username = username
+#         self._password = password
     
-    def _perform_command(self, hub: Hub):
-        hub.connection.send_packet(f"{self._username},{self._password}")
+#     def _perform_command(self, sender: CommandSender):
+#         sender.connection.send_packet(f"{self._username},{self._password}")
         

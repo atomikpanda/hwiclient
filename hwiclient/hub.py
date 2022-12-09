@@ -1,26 +1,28 @@
 from __future__ import annotations
 
-from typing import Optional, Any, TYPE_CHECKING, Protocol
+from typing import Optional, Any, TYPE_CHECKING, Protocol, Type
 
 if TYPE_CHECKING:
     from .commands.hub import HubCommand
     from .bus import EventBus
     from .repos import DeviceRepository
-    from .connection import TcpConnectionManager, ConnectionStateListener
+    from .connection.listener import ConnectionStateListener, ConnectionState
+    from .connection.login import LutronConnectionConfig
+    from .monitoring import TopicSubscriber, MonitoringTopic
+    
+from .monitoring import TopicNotifier
+from .commands.sender import CommandSender
+from .commands.queue import CommandQueue
 
-
-class Hub(Protocol):
+class Hub(TopicNotifier, CommandSender, CommandQueue, Protocol):
     def __init__(self, bus: EventBus, homeworks_config: dict[str, Any]) -> None:
         pass
 
-    def attempt_login(self, host: str, port: int, username: str, password: str, listener: ConnectionStateListener) -> None:
+    def connect_and_attempt_login(self, config: LutronConnectionConfig, listener: ConnectionStateListener) -> None:
         pass
-    
+
     devices: DeviceRepository
-    connection: TcpConnectionManager
-    
+    connection_state: ConnectionState
+
     def enqueue_command(self, command: HubCommand):
         pass
-    
-
-

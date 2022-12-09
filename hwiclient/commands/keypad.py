@@ -3,8 +3,8 @@ from .hub import SessionActionCommand, SessionRequestCommand
 from typing import TYPE_CHECKING
 
 
-from ..hub import Hub
 from ..device import DeviceAddress
+from .sender import CommandSender
 
 
 class KeypadButtonCommand(SessionActionCommand, ABC):
@@ -16,9 +16,9 @@ class KeypadButtonCommand(SessionActionCommand, ABC):
         if button < 1 or button > 24:
             raise ValueError("Invalid button number: %d" % button)
 
-    def _perform_command(self, hub: Hub):
-        hub.connection.send_command_with_args(
-            self._command_name, [self._address.unencoded_with_brackets, str(self._button_number)])
+    def _perform_command(self, sender: CommandSender):
+        sender.send_command(self._command_name, self._address.unencoded_with_brackets, str(
+            self._button_number))
 
 
 class KeypadButtonPress(KeypadButtonCommand):
@@ -60,6 +60,5 @@ class RequestKeypadLedStates(SessionRequestCommand):
     def __init__(self, keypad_address: DeviceAddress):
         self._keypad_address = keypad_address
 
-    def _perform_command(self, hub: Hub):
-        hub.connection.send_command_with_args(
-            "RKLS", [self._keypad_address.unencoded_with_brackets])
+    def _perform_command(self, sender: CommandSender):
+        sender.send_command("RKLS", self._keypad_address.unencoded_with_brackets)

@@ -9,7 +9,7 @@ class FadeDimmer(SessionActionCommand):
     """Fades one or more system dimmers to a target intensity using a specified fade time and after a specified delay time."""
 
     if TYPE_CHECKING:
-        from ..hub import Hub
+        from .sender import CommandSender
         from ..device import DeviceAddress
 
     def __init__(self, intensity: float, fade_time: timedelta, delay_time: timedelta, *dimmer_addresses: DeviceAddress):
@@ -28,26 +28,24 @@ class FadeDimmer(SessionActionCommand):
         if not (self._intensity >= 0 and self._intensity <= 100):
             raise ValueError('intensity must be between 0 and 100')
 
-    def _perform_command(self, hub: Hub):
+    def _perform_command(self, sender: CommandSender):
         args = [str(self._intensity),
                 Time(self._fade_time).formatted_hour_min_sec,
                 Time(self._delay_time).formatted_hour_min_sec]
         for addr in self._dimmer_adresses:
             args.append(addr.unencoded_with_brackets)
-        hub.connection.send_command_with_args(
-            "FADEDIM", args)
+        sender.send_command("FADEDIM", *args)
 
 
 class RequestDimmerLevel(SessionRequestCommand):
     """Requests the current or target level for any zone in the system"""
     if TYPE_CHECKING:
-        from ..hub import Hub
+        from .sender import CommandSender
         from ..device import DeviceAddress
 
     def __init__(self, address: DeviceAddress):
         """RDL, <address>"""
         self._address = address
 
-    def _perform_command(self, hub: Hub):
-        hub.connection.send_command_with_args(
-            "RDL", [self._address.unencoded_with_brackets])
+    def _perform_command(self, sender: CommandSender):
+        sender.send_command("RDL", self._address.unencoded_with_brackets)

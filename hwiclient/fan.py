@@ -29,7 +29,7 @@ class FanDimmerType(DimmerDeviceType):
 
 class SetFanLevel(FadeDimmer):
     def __init__(self, dimmer: DimmerDevice, fan_speeds: int, level: float):
-        assert type(dimmer.device_type ) is FanDimmerType
+        assert type(dimmer.device_type) == FanDimmerType
         super().__init__(self._safe_fan_level(fan_speeds, level),
                          timedelta(), timedelta(), dimmer.address)
         

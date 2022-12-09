@@ -7,7 +7,7 @@ from twisted.python import log
 import logging
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from .connection import TcpConnectionManager
+    from .legconnection import TcpConnectionManager
     
 _LOGGER = logging.getLogger(__name__)
 class TelnetConnectionError(Exception):
@@ -139,11 +139,11 @@ class TelnetClientCommand:
         self.transport.command_deferred = self.command_deferred
 
     def send_command(self, _):
-        assert self.transport is not None
+        assert self.transport != None
         self.transport.send_command(self.command)
 
     def send_packet_str(self, string, include_return=True):
-        assert self.transport is not None
+        assert self.transport != None
         self.transport.send_packet_str(string, include_return)
         pass
 

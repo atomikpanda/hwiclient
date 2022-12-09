@@ -7,15 +7,28 @@ from .switch import SwitchDimmerType
 from .keypad import Keypad
 import yaml
 from typing import Optional, Any
+from .monitoring import TopicNotifier, MonitoringTopic, TopicSubscriber, MonitoringTopicKey
+from .events import DeviceEventSource, DeviceEventKind, DeviceEventKey
 
 
-class DeviceRepository(object):
+class DeviceRepository(TopicSubscriber):
 
-    def __init__(self, homeworks_config: Optional[dict[str, Any]]):
+    def __init__(self, homeworks_config: Optional[dict[str, Any]], notifier: TopicNotifier):
         self._keypads: dict[str, Keypad] = {}
         self._dimmers: dict[str, DimmerDevice] = {}
-        if homeworks_config is not None:
+        self._notifier = notifier
+        self._notifier.subscribe(self, MonitoringTopic.DIMMER_LEVEL_CHANGED)
+        self._event_source = DeviceEventSource()
+        if homeworks_config != None:
             self._add_from_yaml_dict(homeworks_config)
+
+    def on_topic_update(self, topic: MonitoringTopic, data: dict):
+        if topic == MonitoringTopic.DIMMER_LEVEL_CHANGED:
+            address = DeviceAddress(data[MonitoringTopicKey.ADDRESS])
+            level = data[MonitoringTopicKey.LEVEL]
+            data = {DeviceEventKey.DEVICE_ADDRESS: address,
+                    DeviceEventKey.DIMMER_LEVEL: level}
+            self._event_source.post(DeviceEventKind.DIMMER_LEVEL_CHANGED, data)
 
     def add_from_yaml(self, yaml_filepath):
         with open(yaml_filepath, 'r') as file:
@@ -24,7 +37,7 @@ class DeviceRepository(object):
 
     def _make_dimmer_device(self, device_dict: dict, room_name: str, device_type: DimmerDeviceType) -> DimmerDevice:
         return DimmerDevice(zone_number=device_dict['number'], address=DeviceAddress(device_dict['address']),
-                                   name=device_dict['name'], device_type=device_type, room=room_name)
+                            name=device_dict['name'], device_type=device_type, room=room_name)
 
     def _add_from_yaml_dict(self, yaml_dict: dict[str, Any]):
         for room_name, room in yaml_dict['devices'].items():
@@ -46,10 +59,15 @@ class DeviceRepository(object):
                     self.add_dimmer(self._make_dimmer_device(
                         shade, room_name, ShadeDimmerType()))
 
-    def add_dimmer(self, zone: DimmerDevice) -> None:
-        self._dimmers[zone.address.encoded] = zone
+    def add_dimmer(self, dimmer: DimmerDevice) -> None:
+        self._event_source.register_listener(dimmer, {
+                                             DeviceEventKey.DEVICE_ADDRESS: dimmer.address}, DeviceEventKind.DIMMER_LEVEL_CHANGED)
+        self._dimmers[dimmer.address.encoded] = dimmer
 
     def add_keypad(self, keypad: Keypad) -> None:
+        self._event_source.register_listener(keypad, {DeviceEventKey.DEVICE_ADDRESS: keypad.address}, DeviceEventKind.KEYPAD_LED_STATES_CHANGED,
+                                             DeviceEventKind.KEYPAD_BUTTON_PRESSED, DeviceEventKind.KEYPAD_BUTTON_RELEASED,
+                                             DeviceEventKind.KEYPAD_BUTTON_HELD, DeviceEventKind.KEYPAD_BUTTON_DOUBLE_TAPPED)
         self._keypads[keypad.address.encoded] = keypad
 
     def get_keypad_named(self, keypad_name: str) -> Optional[Keypad]:
@@ -72,14 +90,14 @@ class DeviceRepository(object):
 
     def find_dimmer_device_named(self, zone_name: str, room_name: Optional[str] = None) -> Optional[DimmerDevice]:
         for zone_address, zone in self._dimmers.items():
-            if zone.name == zone_name and room_name is None:
+            if zone.name == zone_name and room_name == None:
                 return zone
             elif zone.name == zone_name and zone.room == room_name:
                 return zone
         return None
-    
+
     def all_dimmer_devices(self, room_name: Optional[str] = None) -> list[DimmerDevice]:
-        if room_name is None:
+        if room_name == None:
             return list(self._dimmers.values())
         return [dimmer for dimmer in self._dimmers.values() if dimmer.room == room_name]
 

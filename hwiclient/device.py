@@ -27,7 +27,14 @@ class DeviceAddress():
             return HwiUtils.encode_keypad_address(self.unencoded)
         else:
             return HwiUtils.encode_zone_address(self.unencoded)
+        
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, self.__class__):
+            return False
+        return self.unencoded == __o.unencoded
 
+    def __ne__(self, __o: object) -> bool:
+        return not self.__eq__(__o)
 
 class Device(ABC):
     def __init__(self, name: str, room: str, address: DeviceAddress) -> None:

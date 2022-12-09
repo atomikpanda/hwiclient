@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from .device import *
 from .commands.dimmer import RequestDimmerLevel, FadeDimmer
 from .commands.hub import SessionActionCommand, SessionRequestCommand, Sequence, HubCommand
+from .events import EventListener, DeviceEventKey, DeviceEventKind, DeviceEventSource
 
 class DimmerDeviceType(OutputDeviceType, ABC):
 
@@ -35,17 +36,17 @@ class DimmerRequests(Requests):
         return RequestDimmerLevel(self._target.address)
 
 
-class DimmerDevice(OutputDevice):
+class DimmerDevice(OutputDevice, EventListener):
 
     def __init__(self, name: str, zone_number: str, address: DeviceAddress, device_type: DimmerDeviceType, room: str):
         super().__init__(name=name, room=room, address=address)
         self._zone_number = zone_number
         self._device_type = device_type
-        self._level = 0
-        self._listeners = []
+        self._level: float = 0
+        self._event_source = DeviceEventSource()
 
     @property
-    def number(self) -> str:
+    def zone_number(self) -> str:
         return self._zone_number
 
     @property
@@ -56,9 +57,6 @@ class DimmerDevice(OutputDevice):
     def is_dimmable(self) -> bool:
         """Whether or not the actual device is a dimmer or switch."""
         return self._device_type.is_dimmable
-
-    def add_level_listener(self, listener):
-        self._listeners.append(listener)
 
     @property
     def level(self) -> float:
@@ -71,26 +69,30 @@ class DimmerDevice(OutputDevice):
     @property
     def request(self) -> DimmerRequests:
         return self._device_type.requests(self)
+    
+    @property
+    def event_source(self) -> DeviceEventSource:
+        return self._event_source
+    
+    def on_event(self, kind: str, data: dict):
+        if kind == DeviceEventKind.DIMMER_LEVEL_CHANGED:
+            self._level = data[DeviceEventKey.DIMMER_LEVEL]
+            
+        # post to event_source
+        data[DeviceEventKey.DEVICE] = self
+        self._event_source.post(DeviceEventKind(kind), data)
+            
 
-    def on_level_changed(self, new_level):
-        # _LOGGER.warning("zone OK ")
-        # _LOGGER.warning("zone is notifying its listeners count: " + str(len(self._listeners)))
-        # _LOGGER.warning("zone AFTER ")
-        self._level = new_level
-        for listener in self._listeners:
-            listener.on_brightness_changed(self)
-        pass
-
-
-class DimmerDeviceGroup(object):
+class DimmerDeviceGroup(EventListener):
     def __init__(self, devices: list[DimmerDevice]):
-        self._level = 0
+        self._level: float = 0
         self._devices = devices
+        self._event_source = DeviceEventSource()
+        
         for device in self.devices:
-            device.add_level_listener(self)
+            device.event_source.register_listener(self)
 
         self._has_dimmer = self._at_least_one_device_is_dimmable()
-        self._level_changed_listener = None
 
     @property
     def has_dimmer(self) -> bool:
@@ -115,23 +117,6 @@ class DimmerDeviceGroup(object):
     def _at_least_one_device_is_dimmable(self) -> bool:
         return any(device.is_dimmable for device in self._devices)
 
-    @property
-    def level_changed_listener(self):
-        return self._level_changed_listener
-
-    @level_changed_listener.setter
-    def level_changed_listener(self, listener):
-        self._level_changed_listener = listener
-
-    # Brightness in a zone within this group was changed.
-    def on_level_changed(self, zone):
-        # recalculate brightness for the whole group
-        self._level = self._calculate_group_level()
-        if self.level_changed_listener != None:
-            self.level_changed_listener.on_level_changed(
-                self._level)
-        pass
-
     def request_all_levels(self) -> HubCommand:
         return Sequence([z.request.level() for z in self._devices])
 
@@ -144,3 +129,22 @@ class DimmerDeviceGroup(object):
 
         self._level = self._calculate_group_level()
         return Sequence(cmds)
+
+    @property
+    def event_source(self) -> DeviceEventSource:
+        return self._event_source
+
+    def on_event(self, kind: str, data: dict):
+        if kind == DeviceEventKind.DIMMER_LEVEL_CHANGED:
+            # recalculate brightness for the whole group
+            old_level = self._level
+            new_level = self._calculate_group_level()
+            self._level = new_level
+            if new_level != old_level:
+                self._event_source.post(DeviceEventKind.DEVICE_GROUP_DIMMER_LEVEL_CHANGED, {
+                    DeviceEventKey.DEVICE_GROUP: self,
+                    DeviceEventKey.DIMMER_LEVEL: new_level
+                })
+        
+        # forward events to group's event_source
+        self._event_source.post(DeviceEventKind(kind), data)

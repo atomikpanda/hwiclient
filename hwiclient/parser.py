@@ -94,7 +94,7 @@ class HwiYamlParser(object):
 
 def find_text(element: ET.Element, tag_name: str) -> Optional[str]:
     result = element.find(tag_name)
-    if result is None:
+    if result == None:
         return None
     else:
         return result.text
@@ -108,7 +108,7 @@ class HwiXmlParser(object):
     def _remap_str(self, input: Optional[str], key: str) -> Optional[str]:
         if not (key in self._remap):
             return input
-        if input is None:
+        if input == None:
             return None
         if input in self._remap[key]:
             return self._remap[key][input]
@@ -123,10 +123,10 @@ class HwiXmlParser(object):
     def _resolve_zone_addr_from_number(self, zone_num: str) -> Optional[str]:
         element = self._root.find(
             f'.//Area/Room/Outputs/Output[ZoneNum="{zone_num}"]')
-        if element is None:
+        if element == None:
             return None
         zone_addr = element.find('Address')
-        if zone_addr is None:
+        if zone_addr == None:
             return None
         return zone_addr.text
 
@@ -135,7 +135,7 @@ class HwiXmlParser(object):
         output_type = find_text(output, 'Type')
         output_address = find_text(output, 'Address')
         output_zone_num = find_text(output, 'ZoneNum')
-        assert output_type is not None
+        assert output_type != None
         # print(f"\t\tOutput: {output_name}, {output_type}")
 
         device_dict = {'name': output_name,
@@ -145,22 +145,22 @@ class HwiXmlParser(object):
 
     def _parse_keypad_button_zone(self, zone_num_tag: ET.Element) -> dict:
         zone_num_text = zone_num_tag.text
-        assert zone_num_text is not None
+        assert zone_num_text != None
         # Resolve the zone address from the zone number
         zone_addr_text = self._resolve_zone_addr_from_number(
             zone_num_text)
-        assert zone_addr_text is not None
+        assert zone_addr_text != None
 
         return {'number': zone_num_text, 'address': zone_addr_text}
 
     def _parse_keypad_button_zones(self, button: ET.Element) -> list[dict]:
         zones = []
         actions = button.find('Actions')
-        assert actions is not None
+        assert actions != None
         presets = actions.find('Presets')
-        assert presets is not None
+        assert presets != None
         first_preset = presets.find('Preset')
-        if first_preset is not None:
+        if first_preset != None:
             for zone_num_tag in first_preset.findall('Output/ZoneNum'):
                 zones.append(self._parse_keypad_button_zone(zone_num_tag))
         return zones
@@ -174,7 +174,7 @@ class HwiXmlParser(object):
 
         zones = self._parse_keypad_button_zones(button)
 
-        assert number_str is not None
+        assert number_str != None
         number = int(number_str)
         return {'name': button_name, 'number': number, 'zones': zones}
 
@@ -182,7 +182,7 @@ class HwiXmlParser(object):
         buttons = []
         for button in buttons_tag.iter('Button'):
             parsed_btn = self._parse_keypad_button(button)
-            if parsed_btn is not None:
+            if parsed_btn != None:
                 buttons.append(parsed_btn)
         return buttons
 
@@ -192,18 +192,18 @@ class HwiXmlParser(object):
         keypad_dict = {
             'name': control_station_name, 'address': keypad_address, 'buttons': []}
         buttons_tag = dev.find('Buttons')
-        assert buttons_tag is not None
+        assert buttons_tag != None
         buttons = self._parse_keypad_buttons(buttons_tag)
         keypad_dict['buttons'] += buttons
         return keypad_dict
 
     def _parse_control_station(self, input: ET.Element) -> Optional[Tuple[str, dict]]:
         control_station_name = find_text(input, 'Name')
-        assert control_station_name is not None
+        assert control_station_name != None
         control_station_devices = input.find('Devices')
-        assert control_station_devices is not None
+        assert control_station_devices != None
         dev = control_station_devices.find('Device')
-        assert dev is not None
+        assert dev != None
         dev_type = find_text(dev, 'Type')
         # dev_type 'DIMMER/SWITCH' is basic wall dimmer switch
         if dev_type == 'KEYPAD':
@@ -228,7 +228,7 @@ class HwiXmlParser(object):
 
                 # print(f"\tRoom: {room_name}")
                 outputs = room.find('Outputs')
-                if outputs is not None:
+                if outputs != None:
                     for output in outputs.iter('Output'):
                         output_type, device_dict = self._parse_output(output)
                         if output_type == 'DIMMER':
@@ -244,10 +244,10 @@ class HwiXmlParser(object):
                                 f'Unknown output type: {output_type}')
 
                 inputs = room.find('Inputs')
-                if inputs is not None:
+                if inputs != None:
                     for input in inputs.iter('ControlStation'):
                         dev_tuple = self._parse_control_station(input)
-                        if dev_tuple is None:
+                        if dev_tuple == None:
                             continue
                         dev_type, dev_dict = dev_tuple
                         if dev_type == "KEYPAD":

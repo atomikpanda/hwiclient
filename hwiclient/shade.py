@@ -32,7 +32,7 @@ class SetShadePosition(HubActionCommand):
     """Sets the current position of cover where 0 means closed and 100 is fully open."""
 
     def __init__(self, shade: DimmerDevice, position: float):
-        assert type(shade.device_type) is ShadeDimmerType
+        assert type(shade.device_type) == ShadeDimmerType
         self._fadedimmer = FadeDimmer(
             position, timedelta(), timedelta(), shade.address)
 
