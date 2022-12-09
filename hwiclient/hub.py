@@ -24,5 +24,5 @@ class Hub(TopicNotifier, CommandSender, CommandQueue, Protocol):
     devices: DeviceRepository
     connection_state: ConnectionState
 
-    def enqueue_command(self, command: HubCommand):
+    def disconnect(self):
         pass

@@ -17,7 +17,7 @@ class KeypadButtonCommand(SessionActionCommand, ABC):
             raise ValueError("Invalid button number: %d" % button)
 
     def _perform_command(self, sender: CommandSender):
-        sender.send_command(self._command_name, self._address.unencoded_with_brackets, str(
+        sender.send_raw_command(self._command_name, self._address.unencoded_with_brackets, str(
             self._button_number))
 
 
@@ -61,4 +61,4 @@ class RequestKeypadLedStates(SessionRequestCommand):
         self._keypad_address = keypad_address
 
     def _perform_command(self, sender: CommandSender):
-        sender.send_command("RKLS", self._keypad_address.unencoded_with_brackets)
+        sender.send_raw_command("RKLS", self._keypad_address.unencoded_with_brackets)

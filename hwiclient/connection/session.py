@@ -14,23 +14,31 @@ class LutronSession:
         self._connection = connection
         self._credentials = credentials
 
-    async def disconnect(self):
+    async def disconnect(self, transport: Transport):
         self._disconnect = True
         await self._connection.writer.write_str("QUIT")
         self._connection.close()
+        print("DISCONNECTING")
+        transport.send_response(ResponseMessage(
+            ResponseMessageKind.STATE_UPDATE, ConnectionState.DISCONNECTING))
+        
+        
+    @property
+    def disconnect_flag(self) -> bool:
+        return self._disconnect
 
-    async def _process_send_message(self, message: RequestMessage):
+    async def _process_send_message(self, message: RequestMessage, transport: Transport):
         if message.kind == RequestMessageKind.SEND_DATA:
             await self._connection.writer.write_str(message.data)
         elif message.kind == RequestMessageKind.SEND_COMMAND:
             await self._connection.writer.write_str(message.data)
         elif message.kind == RequestMessageKind.DISCONNECT:
-            await self.disconnect()
+            await self.disconnect(transport)
             
     async def _send_next_pending_request(self, transport: Transport):
         try:
             request_to_send = transport.get_request()
-            await self._process_send_message(request_to_send)
+            await self._process_send_message(request_to_send, transport)
         except Empty:
             return
             
@@ -51,7 +59,7 @@ class LutronSession:
                     without_prompt = line.removeprefix(self._LNET_PROMPT).strip()
                     
                     if without_prompt.startswith(self._CLOSING_CONNECTION):
-                        self._disconnect = True
+                        await self.disconnect(transport)
                         break
                     else:
                         # Send response data

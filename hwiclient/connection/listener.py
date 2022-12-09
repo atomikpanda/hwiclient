@@ -9,6 +9,7 @@ class ConnectionState(Enum):
     CONNECTED_LOGIN_INCORRECT = 4
     CONNECTED_LOGGED_IN = 5
     CONNECTED_READY_FOR_COMMAND = 6
+    DISCONNECTING = 7
 
 
 class ConnectionStateListener(Protocol):

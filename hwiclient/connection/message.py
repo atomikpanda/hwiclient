@@ -26,9 +26,10 @@ class RequestMessageKind(Enum):
 class RequestMessage:
     kind: RequestMessageKind
     data: Any
+    priority: int = 20
     
-    def __lt__(self, other) -> int:
-        return 0
+    def __lt__(self, other: 'RequestMessage') -> int:
+        return self.priority < other.priority
         
 
 
@@ -58,9 +59,9 @@ class ResponseQueue(Queue[ResponseMessage]):
         self.put(ResponseMessage(ResponseMessageKind.STATE_UPDATE, state))
 
 
-class RequestQueue(PriorityQueue[Tuple[int, RequestMessage]]):
-    def put_request_data(self, data: Any, priority: int = 20):
-        self.put((priority, RequestMessage(RequestMessageKind.SEND_DATA, data)))
+class RequestQueue(PriorityQueue[RequestMessage]):
+    def put_request_data(self, data: Any):
+        self.put(RequestMessage(RequestMessageKind.SEND_DATA, data))
 
 
 class Transport(MessageSender, MessageGetter):
@@ -76,14 +77,14 @@ class Transport(MessageSender, MessageGetter):
     def request_queue(self) -> RequestQueue:
         return self._request_queue
     
-    def send_request(self, message: RequestMessage, priority: int = 20):
-        self._request_queue.put((priority, message))
+    def send_request(self, message: RequestMessage):
+        self._request_queue.put(message)
     
     def send_response(self, message: ResponseMessage):
         self._response_queue.put(message)
         
     def get_request(self) -> RequestMessage:
-        return self._request_queue.get(False)[1]
+        return self._request_queue.get(False)
     
     def get_response(self) -> ResponseMessage:
         return self._response_queue.get()

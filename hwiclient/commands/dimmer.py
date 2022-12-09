@@ -34,7 +34,7 @@ class FadeDimmer(SessionActionCommand):
                 Time(self._delay_time).formatted_hour_min_sec]
         for addr in self._dimmer_adresses:
             args.append(addr.unencoded_with_brackets)
-        sender.send_command("FADEDIM", *args)
+        sender.send_raw_command("FADEDIM", *args)
 
 
 class RequestDimmerLevel(SessionRequestCommand):
@@ -48,4 +48,4 @@ class RequestDimmerLevel(SessionRequestCommand):
         self._address = address
 
     def _perform_command(self, sender: CommandSender):
-        sender.send_command("RDL", self._address.unencoded_with_brackets)
+        sender.send_raw_command("RDL", self._address.unencoded_with_brackets)
