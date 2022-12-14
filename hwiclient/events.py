@@ -71,13 +71,14 @@ class DeviceEventSource(EventSource):
         _LOGGER.debug("LISTENERS: %s", self._listeners[kind])
         for listener, filter in self._listeners[kind]:
             if filter != None and self._passes_filter(data, filter):
-                _LOGGER.debug(f"POST {kind} data={data} filter={filter}")
+                _LOGGER.debug(f"POST {kind} data={data} filter={filter} target={listener}")
                 listener.on_event(kind, data)
             else:
-                _LOGGER.debug(f"POST {kind} data={data}")
+                _LOGGER.debug(f"POST {kind} data={data} target={listener}")
                 listener.on_event(kind, data)
 
     def register_listener(self, listener: EventListener, filter: Optional[dict] = None, *kind: DeviceEventKind):
+        
         _LOGGER.debug("Register listener %s with filter %s", listener, filter)
         for event_kind in kind:
             if event_kind in self._listeners:
