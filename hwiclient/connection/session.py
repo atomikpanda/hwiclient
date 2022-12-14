@@ -73,6 +73,9 @@ class LutronSession:
         while not self._disconnect:
             await self._read_next(transport)
             
+    def _read_until_disconnect_main(self, transport: Transport)
+        asyncio.run(self._read_until_disconnect(transport))
+            
             
     async def _send_until_disconnect(self, transport: Transport):
         while not self._disconnect:
@@ -86,6 +89,6 @@ class LutronSession:
         send_task = asyncio.create_task(self._send_until_disconnect(transport))
         
         _LOGGER.debug("READ THREAD STARTING")
-        read_thread = Thread(None, target=(self._read_until_disconnect), name=None, args=[transport], kwargs=None, daemon=None)
+        read_thread = Thread(None, target=(self._read_until_disconnect_main), name=None, args=[transport], kwargs=None, daemon=None)
         read_thread.start()
         await send_task
