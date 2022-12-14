@@ -11,7 +11,13 @@ class DeviceAddress():
             assert unencoded.endswith(']')
             unencoded = unencoded.removesuffix(']')
 
-        self._unencoded = unencoded
+        self._unencoded = self._standardize(unencoded)
+
+    def _standardize(self, unencoded: str) -> str:
+        if unencoded.count(':') == 2:
+            return ":".join(HwiUtils.keypad_address_components(unencoded))
+        else:
+            return ":".join(HwiUtils.zone_address_components(unencoded))
 
     @property
     def unencoded(self) -> str:
@@ -27,7 +33,7 @@ class DeviceAddress():
             return HwiUtils.encode_keypad_address(self.unencoded)
         else:
             return HwiUtils.encode_zone_address(self.unencoded)
-        
+
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, self.__class__):
             return False
@@ -38,6 +44,7 @@ class DeviceAddress():
 
     def __repr__(self) -> str:
         return f"<DeviceAddress: {self.unencoded}>"
+
 
 class Device(ABC):
     def __init__(self, name: str, room: str, address: DeviceAddress) -> None:
@@ -75,7 +82,7 @@ class DeviceType(ABC):
     @abstractmethod
     def type_id(self) -> str:
         pass
-    
+
     def __repr__(self) -> str:
         return f"<DeviceType: {self.type_id}>"
 
