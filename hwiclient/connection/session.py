@@ -48,7 +48,7 @@ class LutronSession:
         reader = self._connection.reader
         while self._disconnect == False:
             if reader._reader.at_eof():
-                _LOGGER.debug("AWAIT READLINE")
+                # _LOGGER.debug("AWAIT READLINE")
                 line = await reader.readline()
                 
                 if len(line) > 0 and len(line.strip()) > 0:
@@ -70,5 +70,5 @@ class LutronSession:
                             transport.send_response(ResponseMessage(
                                 ResponseMessageKind.SERVER_RESPONSE_DATA, without_prompt))
             
-            _LOGGER.debug("AWAIT SEND NEXT PENDING REQ")
+            # _LOGGER.debug("AWAIT SEND NEXT PENDING REQ")
             await self._send_next_pending_request(transport)
