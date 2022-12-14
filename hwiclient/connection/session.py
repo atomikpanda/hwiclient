@@ -73,7 +73,7 @@ class LutronSession:
         while not self._disconnect:
             await self._read_next(transport)
             
-    def _read_until_disconnect_main(self, transport: Transport)
+    def _read_until_disconnect_main(self, transport: Transport):
         asyncio.run(self._read_until_disconnect(transport))
             
             
