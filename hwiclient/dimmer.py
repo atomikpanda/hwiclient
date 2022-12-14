@@ -95,7 +95,7 @@ class DimmerDeviceGroup(EventListener):
         self._event_source = DeviceEventSource()
 
         for device in self.devices:
-            device.event_source.register_listener(self)
+            device.event_source.register_listener(self, None)
 
         self._has_dimmer = self._at_least_one_device_is_dimmable()
 
