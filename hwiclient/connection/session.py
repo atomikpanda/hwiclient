@@ -1,4 +1,5 @@
 
+import asyncio
 from .login import LutronCredentials
 from .message import RequestMessage, ResponseMessage, ResponseMessageKind, RequestMessageKind, Transport
 from .listener import ConnectionState
@@ -6,6 +7,7 @@ from .tcp import TcpConnection
 from queue import Empty
 import logging
 _LOGGER = logging.getLogger(__name__)
+
 
 class LutronSession:
     _LNET_PROMPT = "LNET>"
@@ -23,8 +25,7 @@ class LutronSession:
         print("DISCONNECTING")
         transport.send_response(ResponseMessage(
             ResponseMessageKind.STATE_UPDATE, ConnectionState.DISCONNECTING))
-        
-        
+
     @property
     def disconnect_flag(self) -> bool:
         return self._disconnect
@@ -36,39 +37,44 @@ class LutronSession:
             await self._connection.writer.write_str(message.data)
         elif message.kind == RequestMessageKind.DISCONNECT:
             await self.disconnect(transport)
-            
+
     async def _send_next_pending_request(self, transport: Transport):
         try:
             request_to_send = transport.get_request()
             await self._process_send_message(request_to_send, transport)
         except Empty:
             return
-            
-    async def send_and_receive_on_transport(self, transport: Transport):
+
+    async def _read_next(self, transport: Transport):
         reader = self._connection.reader
         while self._disconnect == False:
-            if not reader._reader.at_eof():
-                # _LOGGER.debug("AWAIT READLINE")
-                line = await reader.readline()
-                
-                if len(line) > 0 and len(line.strip()) > 0:
-                    line = line.strip()
-                    _LOGGER.debug(f"`{{{line}}}`")
-                    # If line is just a blank lnet prompt notify ready for command
-                    if line == self._LNET_PROMPT:
-                        transport.send_response(ResponseMessage(
-                            ResponseMessageKind.STATE_UPDATE, ConnectionState.CONNECTED_READY_FOR_COMMAND))
+            line = await reader.readline()
+
+            if len(line) > 0 and len(line.strip()) > 0:
+                line = line.strip()
+                _LOGGER.debug(f"`{{{line}}}`")
+                # If line is just a blank lnet prompt notify ready for command
+                if line == self._LNET_PROMPT:
+                    transport.send_response(ResponseMessage(
+                        ResponseMessageKind.STATE_UPDATE, ConnectionState.CONNECTED_READY_FOR_COMMAND))
+                else:
+                    # Remove LNET prompt prefix
+                    without_prompt = line.removeprefix(
+                        self._LNET_PROMPT).strip()
+
+                    if without_prompt.startswith(self._CLOSING_CONNECTION):
+                        await self.disconnect(transport)
+                        # break
                     else:
-                        # Remove LNET prompt prefix
-                        without_prompt = line.removeprefix(self._LNET_PROMPT).strip()
-                        
-                        if without_prompt.startswith(self._CLOSING_CONNECTION):
-                            await self.disconnect(transport)
-                            break
-                        else:
-                            # Send response data
-                            transport.send_response(ResponseMessage(
-                                ResponseMessageKind.SERVER_RESPONSE_DATA, without_prompt))
-            
+                        # Send response data
+                        transport.send_response(ResponseMessage(
+                            ResponseMessageKind.SERVER_RESPONSE_DATA, without_prompt))
+
+    async def send_and_receive_on_transport(self, transport: Transport):
+        reader = self._connection.reader
+        task = asyncio.create_task(self._read_next(transport))
+        while self._disconnect == False:
+            # _LOGGER.debug("AWAIT READLINE")
+
             # _LOGGER.debug("AWAIT SEND NEXT PENDING REQ")
             await self._send_next_pending_request(transport)
