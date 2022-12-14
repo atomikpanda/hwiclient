@@ -77,6 +77,7 @@ class DeviceEventSource(EventSource):
                 listener.on_event(kind, data)
 
     def register_listener(self, listener: EventListener, filter: Optional[dict] = None, *kind: DeviceEventKind):
+        _LOGGER.debug("Register listener %s with filter %s", listener, filter)
         for event_kind in kind:
             if event_kind in self._listeners:
                 self._listeners[event_kind].append((listener, filter))
