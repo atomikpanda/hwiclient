@@ -65,15 +65,15 @@ class DeviceEventSource(EventSource):
         return result
 
     def post(self, kind: DeviceEventKind, data: dict):
-        _LOGGER.warning(f"POST {kind} data={data}")
+        
         if kind not in self._listeners:
             return
         for listener, filter in self._listeners[kind]:
             if filter != None and self._passes_filter(data, filter):
-                _LOGGER.debug("FILTER PASSED: %s", filter)
+                _LOGGER.debug(f"POST {kind} data={data} filter={filter}")
                 listener.on_event(kind, data)
             else:
-                _LOGGER.debug("NO FILTER")
+                _LOGGER.debug(f"POST {kind} data={data}")
                 listener.on_event(kind, data)
 
     def register_listener(self, listener: EventListener, filter: Optional[dict] = None, *kind: DeviceEventKind):

@@ -75,6 +75,9 @@ class DeviceType(ABC):
     @abstractmethod
     def type_id(self) -> str:
         pass
+    
+    def __repr__(self) -> str:
+        return f"<DeviceType: {self.type_id}>"
 
 
 class OutputDeviceType(DeviceType, ABC):
