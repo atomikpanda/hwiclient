@@ -85,6 +85,7 @@ class LutronSession:
         reader = self._connection.reader
         send_task = asyncio.create_task(self._send_until_disconnect(transport))
         
+        _LOGGER.debug("READ THREAD STARTING")
         read_thread = Thread(None, target=(self._read_until_disconnect), name=None, args=[transport], kwargs=None, daemon=None)
         read_thread.start()
         await send_task
