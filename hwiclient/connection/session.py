@@ -47,7 +47,7 @@ class LutronSession:
     async def send_and_receive_on_transport(self, transport: Transport):
         reader = self._connection.reader
         while self._disconnect == False:
-            if reader._reader.at_eof():
+            if not reader._reader.at_eof():
                 # _LOGGER.debug("AWAIT READLINE")
                 line = await reader.readline()
                 
