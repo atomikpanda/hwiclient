@@ -47,6 +47,7 @@ class LutronSession:
     async def send_and_receive_on_transport(self, transport: Transport):
         reader = self._connection.reader
         while self._disconnect == False:
+            _LOGGER.debug("AWAIT READLINE")
             line = await reader.readline()
             
             if len(line) > 0 and len(line.strip()) > 0:
@@ -68,4 +69,5 @@ class LutronSession:
                         transport.send_response(ResponseMessage(
                             ResponseMessageKind.SERVER_RESPONSE_DATA, without_prompt))
             
+            _LOGGER.debug("AWAIT SEND NEXT PENDING REQ")
             await self._send_next_pending_request(transport)
