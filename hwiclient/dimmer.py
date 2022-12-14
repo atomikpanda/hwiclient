@@ -6,6 +6,7 @@ from .commands.dimmer import RequestDimmerLevel, FadeDimmer
 from .commands.hub import SessionActionCommand, SessionRequestCommand, Sequence, HubCommand
 from .events import EventListener, DeviceEventKey, DeviceEventKind, DeviceEventSource
 
+
 class DimmerDeviceType(OutputDeviceType, ABC):
 
     @property
@@ -20,13 +21,14 @@ class DimmerDeviceType(OutputDeviceType, ABC):
     def requests(self, device: DimmerDevice) -> DimmerRequests:
         return DimmerRequests(device)
 
+
 class DimmerActions(Actions):
     def set_level(self, level: float) -> SessionActionCommand:
         return FadeDimmer(level, timedelta(), timedelta(), self._target.address)
-    
+
     def turn_off(self) -> SessionActionCommand:
         return FadeDimmer(0, timedelta(), timedelta(), self._target.address)
-    
+
     def turn_on(self) -> SessionActionCommand:
         return FadeDimmer(100, timedelta(), timedelta(), self._target.address)
 
@@ -44,6 +46,9 @@ class DimmerDevice(OutputDevice, EventListener):
         self._device_type = device_type
         self._level: float = 0
         self._event_source = DeviceEventSource()
+
+    def __str__(self) -> str:
+        return f"<DimmerDevice(name={self.name}, room={self.room} level={self.level}, address={self.address}, type={self.device_type})>"
 
     @property
     def zone_number(self) -> str:
@@ -69,26 +74,26 @@ class DimmerDevice(OutputDevice, EventListener):
     @property
     def request(self) -> DimmerRequests:
         return self._device_type.requests(self)
-    
+
     @property
     def event_source(self) -> DeviceEventSource:
         return self._event_source
-    
+
     def on_event(self, kind: str, data: dict):
         if kind == DeviceEventKind.DIMMER_LEVEL_CHANGED:
             self._level = data[DeviceEventKey.DIMMER_LEVEL]
-            
+
         # post to event_source
         data[DeviceEventKey.DEVICE] = self
         self._event_source.post(DeviceEventKind(kind), data)
-            
+
 
 class DimmerDeviceGroup(EventListener):
     def __init__(self, devices: list[DimmerDevice]):
         self._level: float = 0
         self._devices = devices
         self._event_source = DeviceEventSource()
-        
+
         for device in self.devices:
             device.event_source.register_listener(self)
 
@@ -145,6 +150,6 @@ class DimmerDeviceGroup(EventListener):
                     DeviceEventKey.DEVICE_GROUP: self,
                     DeviceEventKey.DIMMER_LEVEL: new_level
                 })
-        
+
         # forward events to group's event_source
         self._event_source.post(DeviceEventKind(kind), data)
