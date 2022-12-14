@@ -47,27 +47,28 @@ class LutronSession:
     async def send_and_receive_on_transport(self, transport: Transport):
         reader = self._connection.reader
         while self._disconnect == False:
-            _LOGGER.debug("AWAIT READLINE")
-            line = await reader.readline()
-            
-            if len(line) > 0 and len(line.strip()) > 0:
-                line = line.strip()
-                _LOGGER.debug(f"`{{{line}}}`")
-                # If line is just a blank lnet prompt notify ready for command
-                if line == self._LNET_PROMPT:
-                    transport.send_response(ResponseMessage(
-                        ResponseMessageKind.STATE_UPDATE, ConnectionState.CONNECTED_READY_FOR_COMMAND))
-                else:
-                    # Remove LNET prompt prefix
-                    without_prompt = line.removeprefix(self._LNET_PROMPT).strip()
-                    
-                    if without_prompt.startswith(self._CLOSING_CONNECTION):
-                        await self.disconnect(transport)
-                        break
-                    else:
-                        # Send response data
+            if reader._reader.at_eof():
+                _LOGGER.debug("AWAIT READLINE")
+                line = await reader.readline()
+                
+                if len(line) > 0 and len(line.strip()) > 0:
+                    line = line.strip()
+                    _LOGGER.debug(f"`{{{line}}}`")
+                    # If line is just a blank lnet prompt notify ready for command
+                    if line == self._LNET_PROMPT:
                         transport.send_response(ResponseMessage(
-                            ResponseMessageKind.SERVER_RESPONSE_DATA, without_prompt))
+                            ResponseMessageKind.STATE_UPDATE, ConnectionState.CONNECTED_READY_FOR_COMMAND))
+                    else:
+                        # Remove LNET prompt prefix
+                        without_prompt = line.removeprefix(self._LNET_PROMPT).strip()
+                        
+                        if without_prompt.startswith(self._CLOSING_CONNECTION):
+                            await self.disconnect(transport)
+                            break
+                        else:
+                            # Send response data
+                            transport.send_response(ResponseMessage(
+                                ResponseMessageKind.SERVER_RESPONSE_DATA, without_prompt))
             
             _LOGGER.debug("AWAIT SEND NEXT PENDING REQ")
             await self._send_next_pending_request(transport)
