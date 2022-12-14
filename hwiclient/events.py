@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional, Protocol, Tuple
 import logging
@@ -46,11 +47,34 @@ class EventSource(Protocol):
         pass
 
 
+class FilteredListener(EventListener):
+    def __init__(self, listener: EventListener, filter: dict):
+        self._listener = listener
+        self._filter = filter
+        
+    def _passes_filter(self, data, filter: dict) -> bool:
+        result = True
+        for key, value in filter.items():
+            if key not in data:
+                return False
+
+            if data[key] == value:
+                result = result and True
+            else:
+                return False
+        return result
+
+    def on_event(self, kind: str, data: dict):
+        if self._passes_filter(data, self._filter):
+            self._listener.on_event(kind, data)
+        
+
+
 class DeviceEventSource(EventSource):
 
     def __init__(self):
         self._listeners: dict[DeviceEventKind,
-                              list[Tuple[EventListener, Optional[dict]]]] = {}
+                              list[EventListener]] = {}
 
     def _passes_filter(self, data, filter: dict) -> bool:
         result = True
@@ -65,30 +89,26 @@ class DeviceEventSource(EventSource):
         return result
 
     def post(self, kind: DeviceEventKind, data: dict):
-        
+
         if kind not in self._listeners:
             return
-        _LOGGER.debug("LISTENERS: %s", self._listeners[kind])
-        for listener, filter in self._listeners[kind]:
-            if filter != None and self._passes_filter(data, filter):
-                _LOGGER.debug(f"POST {kind} data={data} filter={filter} target={listener}")
-                listener.on_event(kind, data)
-            else:
-                _LOGGER.debug(f"POST {kind} data={data} target={listener}")
-                listener.on_event(kind, data)
+        
+        for listener in self._listeners[kind]:
+            listener.on_event(kind, data)
 
     def register_listener(self, listener: EventListener, filter: Optional[dict], *kind: DeviceEventKind):
-        
+
         _LOGGER.debug("Register listener %s with filter %s", listener, filter)
+        listener_to_register = FilteredListener(listener, filter) if filter != None else listener
         for event_kind in kind:
             if event_kind in self._listeners:
-                self._listeners[event_kind].append((listener, filter))
+                self._listeners[event_kind].append(listener_to_register)
             else:
-                self._listeners[event_kind] = [(listener, filter)]
+                self._listeners[event_kind] = [listener_to_register]
 
     def _unregister_listener(self, listener: EventListener, event_kind: DeviceEventKind):
         if event_kind in self._listeners:
-            for index, (event_listener, filter) in enumerate(self._listeners[event_kind]):
+            for index, event_listener in enumerate(self._listeners[event_kind]):
                 if event_listener == listener:
                     self._listeners[event_kind].pop(index)
                     return
