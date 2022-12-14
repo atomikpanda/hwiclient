@@ -36,7 +36,7 @@ class DeviceAddress():
     def __ne__(self, __o: object) -> bool:
         return not self.__eq__(__o)
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return f"<DeviceAddress: {self.unencoded}>"
 
 class Device(ABC):

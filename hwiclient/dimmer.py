@@ -47,7 +47,7 @@ class DimmerDevice(OutputDevice, EventListener):
         self._level: float = 0
         self._event_source = DeviceEventSource()
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return f"<DimmerDevice(name={self.name}, room={self.room} level={self.level}, address={self.address}, type={self.device_type})>"
 
     @property
