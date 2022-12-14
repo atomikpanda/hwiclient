@@ -68,12 +68,21 @@ class LutronSession:
                     # Send response data
                     transport.send_response(ResponseMessage(
                         ResponseMessageKind.SERVER_RESPONSE_DATA, without_prompt))
+    async def _read_until_disconnect(self, transport: Transport):
+        while not self._disconnect:
+            await self._read_next(transport)
+            
+            
+    async def _send_until_disconnect(self, transport: Transport):
+        while not self._disconnect:
+            # _LOGGER.debug("AWAIT READLINE")
+
+            # _LOGGER.debug("AWAIT SEND NEXT PENDING REQ")
+            await self._send_next_pending_request(transport)
 
     async def send_and_receive_on_transport(self, transport: Transport):
         reader = self._connection.reader
+        read_task = asyncio.create_task(self._read_until_disconnect(transport))
+        send_task = asyncio.create_task(self._send_until_disconnect(transport))
         
-        while self._disconnect == False:
-            # _LOGGER.debug("AWAIT READLINE")
-            await self._read_next(transport)
-            # _LOGGER.debug("AWAIT SEND NEXT PENDING REQ")
-            await self._send_next_pending_request(transport)
+        await asyncio.gather(read_task, send_task)
