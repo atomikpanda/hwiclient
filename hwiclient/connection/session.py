@@ -82,7 +82,8 @@ class LutronSession:
 
     async def send_and_receive_on_transport(self, transport: Transport):
         reader = self._connection.reader
-        read_task = asyncio.create_task(self._read_until_disconnect(transport))
+        read_task = asyncio.create_task(asyncio.to_thread(
+            self._read_until_disconnect, transport))
         send_task = asyncio.create_task(self._send_until_disconnect(transport))
         
         await asyncio.gather(read_task, send_task)
