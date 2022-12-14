@@ -77,7 +77,7 @@ class DeviceEventSource(EventSource):
                 _LOGGER.debug(f"POST {kind} data={data} target={listener}")
                 listener.on_event(kind, data)
 
-    def register_listener(self, listener: EventListener, filter: Optional[dict] = None, *kind: DeviceEventKind):
+    def register_listener(self, listener: EventListener, filter: Optional[dict], *kind: DeviceEventKind):
         
         _LOGGER.debug("Register listener %s with filter %s", listener, filter)
         for event_kind in kind:
