@@ -3,6 +3,7 @@ from typing import Any, Optional, Protocol, Tuple
 import logging
 _LOGGER = logging.getLogger(__name__)
 
+
 class DeviceEventKind(str, Enum):
     DIMMER_LEVEL_CHANGED = "dimmer_level_changed"
     KEYPAD_LED_STATES_CHANGED = "keypad_led_states_changed"
@@ -38,7 +39,7 @@ class EventListener(Protocol):
 
 
 class EventSource(Protocol):
-    def register_listener(self, listener: EventListener, filter: Optional[dict]=None, *kind: str):
+    def register_listener(self, listener: EventListener, filter: Optional[dict] = None, *kind: str):
         pass
 
     def unregister_listener(self, listener: EventListener, *kind: str):
@@ -52,13 +53,16 @@ class DeviceEventSource(EventSource):
                               list[Tuple[EventListener, Optional[dict]]]] = {}
 
     def _passes_filter(self, data, filter: dict) -> bool:
+        result = True
         for key, value in filter.items():
             if key not in data:
                 return False
 
-            if data[key] != value:
+            if data[key] == value:
+                result = result and True
+            else:
                 return False
-        return True
+        return result
 
     def post(self, kind: DeviceEventKind, data: dict):
         _LOGGER.warning(f"POST {kind} data={data}")
@@ -70,7 +74,7 @@ class DeviceEventSource(EventSource):
             else:
                 listener.on_event(kind, data)
 
-    def register_listener(self, listener: EventListener, filter: Optional[dict]=None, *kind: DeviceEventKind):
+    def register_listener(self, listener: EventListener, filter: Optional[dict] = None, *kind: DeviceEventKind):
         for event_kind in kind:
             if event_kind in self._listeners:
                 self._listeners[event_kind].append((listener, filter))
