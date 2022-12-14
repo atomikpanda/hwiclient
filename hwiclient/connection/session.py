@@ -4,6 +4,8 @@ from .message import RequestMessage, ResponseMessage, ResponseMessageKind, Reque
 from .listener import ConnectionState
 from .tcp import TcpConnection
 from queue import Empty
+import logging
+_LOGGER = logging.getLogger(__name__)
 
 class LutronSession:
     _LNET_PROMPT = "LNET>"
@@ -49,7 +51,7 @@ class LutronSession:
             
             if len(line) > 0 and len(line.strip()) > 0:
                 line = line.strip()
-                print(f"`{{{line}}}`")
+                _LOGGER.debug(f"`{{{line}}}`")
                 # If line is just a blank lnet prompt notify ready for command
                 if line == self._LNET_PROMPT:
                     transport.send_response(ResponseMessage(

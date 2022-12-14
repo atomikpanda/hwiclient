@@ -1,5 +1,7 @@
 from typing import Callable, Optional
 from .monitoring import MonitoringTopicNotifier, MonitoringTopic, MonitoringTopicKey
+import logging
+_LOGGER = logging.getLogger(__name__)
 
 class ServerResponseDataHandler:
     def __init__(self, notifier: MonitoringTopicNotifier) -> None:
@@ -32,13 +34,13 @@ class ServerResponseDataHandler:
             handler = self._handlers[cmd_name]
             args.pop(0)
             if handler != None:
-                print(f"Calling handler {args}")
+                _LOGGER.debug(f"Calling handler {args}")
                 handler_data = handler(*args)
                 topic = MonitoringTopic(cmd_name)
                 self._notifier.notify_subscribers(topic,
                                                   data=handler_data)
         else:
-            print("Unknown command: " + data)
+            _LOGGER.debug("Unknown command: " + data)
 
     def _keypad_btn_handler(self, keypad_addr: str, button_num: str) -> Optional[dict]:
         return {MonitoringTopicKey.ADDRESS: keypad_addr,

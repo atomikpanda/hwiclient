@@ -8,6 +8,8 @@ from .login import LutronConnectionConfig
 from .message import RequestMessage, RequestMessageKind, ResponseQueue, Transport
 from .listener import ConnectionState
 from .watcher import ResponseWatcher
+import logging
+_LOGGER = logging.getLogger(__name__)
 
 
 class ResponseWatcherThread(Thread):
@@ -48,8 +50,8 @@ class TcpClientThread(Thread):
             try:
                 await self._connect_and_login(client, login)
             except asyncio.exceptions.IncompleteReadError as ex:
-                print("Lost connection")
-                print("Retry connection")
+                _LOGGER.debug("Lost connection")
+                _LOGGER.debug("Retry connection")
                 retries += 1
 
     def _put_priory_requests_in_transport(self):
@@ -74,7 +76,7 @@ class TcpClientThread(Thread):
             self._transport
         )
         if session == None:
-            print("Login failed")
+            _LOGGER.error("Login failed")
         else:
             self._put_priory_requests_in_transport()
             await session.send_and_receive_on_transport(self._transport)

@@ -1,5 +1,7 @@
 import asyncio
 from typing import Iterable
+import logging
+_LOGGER = logging.getLogger(__name__)
 
 
 class _WriterHelper:
@@ -63,7 +65,7 @@ class _ReaderHelper:
                 break
             else:
                 buffer += self._decode(just_read)
-                print("j: ", just_read)
+                _LOGGER.debug("j: ", just_read)
             pass
         
         lines = buffer.splitlines()
