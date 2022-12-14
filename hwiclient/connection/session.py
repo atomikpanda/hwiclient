@@ -1,5 +1,6 @@
 
 import asyncio
+from threading import Thread
 from .login import LutronCredentials
 from .message import RequestMessage, ResponseMessage, ResponseMessageKind, RequestMessageKind, Transport
 from .listener import ConnectionState
@@ -82,8 +83,8 @@ class LutronSession:
 
     async def send_and_receive_on_transport(self, transport: Transport):
         reader = self._connection.reader
-        read_task = asyncio.create_task(asyncio.to_thread(
-            self._read_until_disconnect, transport))
         send_task = asyncio.create_task(self._send_until_disconnect(transport))
         
-        await asyncio.gather(read_task, send_task)
+        read_thread = Thread(None, target=(self._read_until_disconnect), name=None, args=[transport], kwargs=None, daemon=None)
+        read_thread.start()
+        await send_task
