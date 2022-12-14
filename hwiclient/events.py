@@ -70,8 +70,10 @@ class DeviceEventSource(EventSource):
             return
         for listener, filter in self._listeners[kind]:
             if filter != None and self._passes_filter(data, filter):
+                _LOGGER.debug("FILTER PASSED: %s", filter)
                 listener.on_event(kind, data)
             else:
+                _LOGGER.debug("NO FILTER")
                 listener.on_event(kind, data)
 
     def register_listener(self, listener: EventListener, filter: Optional[dict] = None, *kind: DeviceEventKind):
