@@ -68,6 +68,7 @@ class DeviceEventSource(EventSource):
         
         if kind not in self._listeners:
             return
+        _LOGGER.debug("LISTENERS: %s", self._listeners[kind])
         for listener, filter in self._listeners[kind]:
             if filter != None and self._passes_filter(data, filter):
                 _LOGGER.debug(f"POST {kind} data={data} filter={filter}")
