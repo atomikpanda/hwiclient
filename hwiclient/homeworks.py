@@ -5,7 +5,7 @@ from typing import Any, TYPE_CHECKING, Callable, Iterable, Optional, Type
 from .repos import DeviceRepository
 from .connection.state import ConnectionState
 from .connection.message import RequestMessage, RequestMessageKind, ResponseMessage, ResponseMessageKind
-from .connection.login import LutronConnectionConfig
+from .connection.login import LutronServerAddress
 from .connection.tcp import TcpConnection
 from .connection.coordinator import ConnectionCoordinator
 from .commands.hub import HubCommand
@@ -52,9 +52,8 @@ class HomeworksHub(Hub):
         await self._coordinator.enqueue(RequestMessage(
             RequestMessageKind.SEND_COMMAND, data))
 
-    async def connect(self, config: LutronConnectionConfig) -> TcpConnection:
-        self._connection_config = config
-        return await self._coordinator.connect(config.server_address)
+    async def connect(self, server: LutronServerAddress) -> TcpConnection:
+        return await self._coordinator.connect(server)
 
     async def disconnect(self):
         await self._coordinator.enqueue(RequestMessage(

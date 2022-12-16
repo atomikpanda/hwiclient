@@ -1,5 +1,5 @@
 from .message import ReponseMessageFactory, ResponseMessage, ResponseMessageKind
-from .state import ConnectionState
+from .state import ConnectionState as CS
 import logging
 _LOGGER = logging.getLogger(__name__)
 
@@ -12,19 +12,19 @@ class DataToResponseAdapter:
 
     def __init__(self, encoding: str):
         self._encoding = encoding
-        self._message_factory = ReponseMessageFactory()
+        self._factory = ReponseMessageFactory()
 
     def adapt(self, data: bytes) -> ResponseMessage:
         message = data.decode(self._encoding)
         stripped = message.strip()
         print('RES> %s' % stripped)
         if stripped == self._LOGIN_PROMPT:
-            return self._message_factory.create_state_update(ConnectionState.CONNECTED_READY_FOR_LOGIN_ATTEMPT)
+            return self._factory.create_state_update(CS.CONNECTED_READY_FOR_LOGIN_ATTEMPT)
         elif stripped == self._LOGIN_SUCCESSFUL:
-            return self._message_factory.create_state_update(ConnectionState.CONNECTED_LOGGED_IN)
+            return self._factory.create_state_update(CS.CONNECTED_LOGGED_IN)
         elif stripped == self._LOGIN_INCORRECT:
-            return self._message_factory.create_state_update(ConnectionState.CONNECTED_LOGIN_INCORRECT)
+            return self._factory.create_state_update(CS.CONNECTED_LOGIN_INCORRECT)
         elif stripped == self._LNET_PROMPT:
-            return self._message_factory.create_state_update(ConnectionState.CONNECTED_READY_FOR_COMMAND)
+            return self._factory.create_state_update(CS.CONNECTED_READY_FOR_COMMAND)
         else:
-            return self._message_factory.create_response_data(stripped)
+            return self._factory.create_response_data(stripped)
