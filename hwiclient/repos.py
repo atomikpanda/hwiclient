@@ -101,7 +101,7 @@ class DeviceRepository(TopicSubscriber):
             return list(self._dimmers.values())
         return [dimmer for dimmer in self._dimmers.values() if dimmer.room == room_name]
 
-    def all_dimmer_devices_of_type(self, *types: Type[DimmerDeviceType]):
+    def all_dimmer_devices_of_type(self, *types: Type[DimmerDeviceType]) -> list[DimmerDevice]:
         types_strs = [devtype.type_id() for devtype in types]
         return [dimmer for dimmer in self._dimmers.values() if dimmer.device_type.type_id() in types_strs]
 
