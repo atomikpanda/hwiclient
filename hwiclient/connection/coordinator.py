@@ -52,8 +52,7 @@ class ConnectionCoordinator(RequestEnqueuer):
 
     def _on_data_received(self, data: bytes) -> None:
         response = self._data_to_response_adapter.adapt(data)
-        print(response)
-
+        _LOGGER.debug(response)
 
         if response.kind == ResponseMessageKind.STATE_UPDATE:
             self._connection.on_state_update(response.data)

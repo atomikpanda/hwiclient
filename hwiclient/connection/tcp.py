@@ -4,7 +4,9 @@ from .protocol import LutronClientProtocol
 from .login import LutronCredentials, LutronServerAddress
 from .state import ConnectionState
 from .message import RequestMessage, RequestMessageKind
+import logging
 
+_LOGGER = logging.getLogger(__name__)
 
 class TcpConnection:
     def __init__(self, server: LutronServerAddress, on_data_received: Callable[[bytes], None], encoding: str):
@@ -41,7 +43,7 @@ class TcpConnection:
     def write_str(self, data: str):
         if self._transport == None:
             raise ConnectionError("Cannot write when transport is None")
-        print("WRITE: %s" % data)
+        _LOGGER.debug("WRITE: %s" % data)
         self._transport.write(f"{data}\r\n".encode(self._encoding))
 
     def write_request(self, request: RequestMessage):

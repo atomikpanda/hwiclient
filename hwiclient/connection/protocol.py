@@ -1,6 +1,9 @@
 import asyncio
 from typing import Callable, Optional
 from .packets import PacketBuffer
+import logging
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class LutronClientProtocol(asyncio.Protocol):
@@ -15,9 +18,9 @@ class LutronClientProtocol(asyncio.Protocol):
 
     def data_received(self, packet: bytes) -> None:
         self._buffer.append(packet)
-        print(f'packet `{packet}`')
-        print(f'buf: `{self._buffer.data}')
-        print(f'is_complete: `{self._buffer.is_complete}`')
+        _LOGGER.debug(f'packet `{packet}`')
+        _LOGGER.debug(f'buffer: `{self._buffer.data}')
+        _LOGGER.debug(f'is_complete: `{self._buffer.is_complete}`')
         if self._buffer.is_complete:
             complete_data = self._buffer.data
             self._buffer.clear()

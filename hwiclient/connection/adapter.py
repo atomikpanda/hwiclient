@@ -17,7 +17,7 @@ class DataToResponseAdapter:
     def adapt(self, data: bytes) -> ResponseMessage:
         message = data.decode(self._encoding)
         stripped = message.strip()
-        print('RES> %s' % stripped)
+        _LOGGER.debug('adapting string data to response %s' % stripped)
         if stripped == self._LOGIN_PROMPT:
             return self._factory.create_state_update(CS.CONNECTED_READY_FOR_LOGIN_ATTEMPT)
         elif stripped == self._LOGIN_SUCCESSFUL:
