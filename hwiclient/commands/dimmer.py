@@ -51,3 +51,28 @@ class RequestDimmerLevel(SessionRequestCommand):
 
     async def _perform_command(self, sender: CommandSender):
         await sender.send_raw_command("RDL", self._address.unencoded_with_brackets)
+
+
+class StopDimmer(SessionActionCommand):
+    """Stops raising/lowering one or more system dimmers"""
+
+    if TYPE_CHECKING:
+        from .sender import CommandSender
+        from ..device import DeviceAddress
+
+    def __init__(self, *dimmer_addresses: DeviceAddress):
+        """STOPDIM, <address 1>, ..., <address n>"""
+        super().__init__()
+        self._dimmer_adresses = dimmer_addresses
+        if len(self._dimmer_adresses) <= 0:
+            raise ValueError("At least one dimmer address is required")
+
+        if len(self._dimmer_adresses) > 10:
+            raise ValueError("Exceeded max limit of 10 dimmer addresses")
+
+    async def _perform_command(self, sender: CommandSender):
+        args = []
+        for addr in self._dimmer_adresses:
+            args.append(addr.unencoded_with_brackets)
+
+        await sender.send_raw_command("STOPDIM", *args)

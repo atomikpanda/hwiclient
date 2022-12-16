@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import TYPE_CHECKING
 from .device import *
-from .commands.dimmer import RequestDimmerLevel, FadeDimmer
+from .commands.dimmer import RequestDimmerLevel, FadeDimmer, StopDimmer
 from .commands.hub import SessionActionCommand, SessionRequestCommand, Sequence, HubCommand
 from .events import EventListener, DeviceEventKey, DeviceEventKind, DeviceEventSource
 
@@ -31,6 +31,9 @@ class DimmerActions(Actions):
 
     def turn_on(self) -> SessionActionCommand:
         return FadeDimmer(100, timedelta(), timedelta(), self._target.address)
+
+    def stop_dim(self) -> SessionActionCommand:
+        return StopDimmer(self._target.address)
 
 
 class DimmerRequests(Requests):
