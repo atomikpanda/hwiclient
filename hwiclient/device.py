@@ -84,7 +84,7 @@ class DeviceType(ABC):
         pass
 
     def __repr__(self) -> str:
-        return f"<DeviceType: {self.type_id}>"
+        return f"<DeviceType: {self.type_id()}>"
 
 
 class OutputDeviceType(DeviceType, ABC):
