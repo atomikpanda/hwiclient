@@ -21,15 +21,6 @@ class ShadeDimmerType(DimmerDeviceType):
     def actions(self, device: DimmerDevice) -> DimmerActions:
         return ShadeActions(device)
 
-    def set_position(self, dimmer: DimmerDevice, position: float) -> SessionActionCommand:
-        return SetShadePosition(dimmer, position)
-    
-    def open_shade(self, dimmer: DimmerDevice) -> SessionActionCommand:
-        return OpenShade(dimmer)
-    
-    def close_shade(self, dimmer: DimmerDevice) -> SessionActionCommand:
-        return CloseShade(dimmer)
-
 class ShadeActions(DimmerActions):
 
     def set_position(self, position: float) -> SessionActionCommand:
