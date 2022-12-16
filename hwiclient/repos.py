@@ -6,7 +6,7 @@ from .fan import FanDimmerType
 from .switch import SwitchDimmerType
 from .keypad import Keypad
 import yaml
-from typing import Optional, Any
+from typing import Optional, Any, Type
 from .monitoring import TopicNotifier, MonitoringTopic, TopicSubscriber, MonitoringTopicKey
 from .events import DeviceEventSource, DeviceEventKind, DeviceEventKey
 
@@ -100,6 +100,10 @@ class DeviceRepository(TopicSubscriber):
         if room_name == None:
             return list(self._dimmers.values())
         return [dimmer for dimmer in self._dimmers.values() if dimmer.room == room_name]
+
+    def all_dimmer_devices_of_type(self, *types: Type[DimmerDeviceType]):
+        types_strs = [devtype.type_id() for devtype in types]
+        return [dimmer for dimmer in self._dimmers.values() if dimmer.device_type.type_id() in types_strs]
 
     def add_all_entities(self, add_entities):
         raise NotImplementedError
