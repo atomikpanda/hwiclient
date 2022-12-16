@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 from .dimmer import DimmerActions, DimmerDevice, DimmerDeviceType
 from .commands.hub import HubActionCommand, SessionActionCommand
-from .commands.dimmer import FadeDimmer
+from .commands.dimmer import FadeDimmer, StopDimmer
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -40,6 +40,9 @@ class ShadeActions(DimmerActions):
 
     def close_shade(self) -> SessionActionCommand:
         return CloseShade(self._target)
+    
+    def stop_shade(self) -> SessionActionCommand:
+        return StopDimmer(self._target.address)
 
 class SetShadePosition(SessionActionCommand):
     """Sets the current position of cover where 0 means closed and 100 is fully open."""
