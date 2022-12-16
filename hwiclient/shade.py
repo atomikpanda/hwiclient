@@ -1,8 +1,8 @@
 
 from __future__ import annotations
 from datetime import timedelta
-from .dimmer import DimmerDevice, DimmerDeviceType
-from .commands.hub import HubActionCommand
+from .dimmer import DimmerActions, DimmerDevice, DimmerDeviceType
+from .commands.hub import HubActionCommand, SessionActionCommand
 from .commands.dimmer import FadeDimmer
 
 from typing import TYPE_CHECKING
@@ -17,18 +17,31 @@ class ShadeDimmerType(DimmerDeviceType):
     @property
     def is_dimmable(self) -> bool:
         return True
-
-    def set_level_command(self, dimmer: DimmerDevice, level: float) -> HubActionCommand:
-        return SetShadePosition(dimmer, level)
     
-    def open_shade(self, dimmer: DimmerDevice) -> HubActionCommand:
+    def actions(self, device: DimmerDevice) -> DimmerActions:
+        return ShadeActions(device)
+
+    def set_position(self, dimmer: DimmerDevice, position: float) -> SessionActionCommand:
+        return SetShadePosition(dimmer, position)
+    
+    def open_shade(self, dimmer: DimmerDevice) -> SessionActionCommand:
         return OpenShade(dimmer)
     
-    def close_shade(self, dimmer: DimmerDevice) -> HubActionCommand:
+    def close_shade(self, dimmer: DimmerDevice) -> SessionActionCommand:
         return CloseShade(dimmer)
 
+class ShadeActions(DimmerActions):
 
-class SetShadePosition(HubActionCommand):
+    def set_position(self, position: float) -> SessionActionCommand:
+        return SetShadePosition(self._target, position)
+
+    def open_shade(self) -> SessionActionCommand:
+        return OpenShade(self._target)
+
+    def close_shade(self) -> SessionActionCommand:
+        return CloseShade(self._target)
+
+class SetShadePosition(SessionActionCommand):
     """Sets the current position of cover where 0 means closed and 100 is fully open."""
 
     def __init__(self, shade: DimmerDevice, position: float):
