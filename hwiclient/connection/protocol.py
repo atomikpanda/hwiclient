@@ -15,6 +15,7 @@ class LutronClientProtocol(asyncio.Protocol):
 
     def data_received(self, packet: bytes) -> None:
         self._buffer.append(packet)
+        print(f'packet `{packet}`')
         if self._buffer.is_complete:
             complete_data = self._buffer.data
             self._buffer.clear()
