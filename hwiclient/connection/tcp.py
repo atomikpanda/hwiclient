@@ -73,6 +73,7 @@ class TcpConnection:
             self._on_logged_in.set_result(True)
 
     def close(self):
+        _LOGGER.debug('TcpConnection close() requested. Closing transport')
         if self._transport != None:
             self._transport.close()
             self._transport = None
