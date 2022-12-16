@@ -16,15 +16,15 @@ class HubCommand(ABC):
         return True
 
     @abstractmethod
-    def _perform_command(self, sender: CommandSender):
+    async def _perform_command(self, sender: CommandSender):
         pass
 
-    def execute(self, sender: CommandSender):
+    async def execute(self, sender: CommandSender):
         if self._can_perform_command(sender):
-            self._perform_command(sender)
+            await self._perform_command(sender)
 
-    def enqueue(self, queue: CommandQueue):
-        queue.enqueue_command(self)
+    async def enqueue(self, queue: CommandQueue):
+        await queue.enqueue_command(self)
 
 
 class HubActionCommand(HubCommand, ABC):
@@ -50,8 +50,8 @@ class Sequence(HubCommand):
         super().__init__()
         self._commands = commands
 
-    def _perform_command(self, sender: CommandSender):
+    async def _perform_command(self, sender: CommandSender):
         for cmd in self._commands:
-            cmd.execute(sender)
+            await cmd.execute(sender)
 
 

@@ -36,8 +36,8 @@ class SetShadePosition(HubActionCommand):
         self._fadedimmer = FadeDimmer(
             position, timedelta(), timedelta(), shade.address)
 
-    def _perform_command(self, hub: Hub):
-        self._fadedimmer._perform_command(hub)
+    async def _perform_command(self, hub: Hub):
+        await self._fadedimmer._perform_command(hub)
 
 class OpenShade(SetShadePosition):
     def __init__(self, shade: DimmerDevice):

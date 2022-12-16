@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Protocol
 
 
 class ConnectionState(Enum):
@@ -10,8 +9,3 @@ class ConnectionState(Enum):
     CONNECTED_LOGGED_IN = 5
     CONNECTED_READY_FOR_COMMAND = 6
     DISCONNECTING = 7
-
-
-class ConnectionStateListener(Protocol):
-    def on_connection_state_changed(self, old_state: ConnectionState, new_state: ConnectionState):
-        pass

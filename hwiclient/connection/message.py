@@ -1,9 +1,11 @@
+import asyncio
 from dataclasses import dataclass
 from enum import Enum
-from queue import PriorityQueue, Queue
+from asyncio import AbstractEventLoop, PriorityQueue, Queue
 from typing import Any, Protocol, Tuple, TypeAlias
-from .listener import ConnectionState
+from .state import ConnectionState
 from abc import abstractmethod
+
 
 class ResponseMessageKind(Enum):
     SERVER_RESPONSE_DATA = 1
@@ -27,64 +29,22 @@ class RequestMessage:
     kind: RequestMessageKind
     data: Any
     priority: int = 20
-    
+
     def __lt__(self, other: 'RequestMessage') -> int:
         return self.priority < other.priority
-        
 
 
-class MessageSender(Protocol):
-    def send_request(self, message: RequestMessage):
-        pass
-    
-    def send_response(self, message: ResponseMessage):
-        pass
-    
-
-class MessageGetter(Protocol):
-    
-    @abstractmethod
-    def get_request(self) -> RequestMessage:
-        pass
-    
-    @abstractmethod
-    def get_response(self) -> ResponseMessage:
+class RequestEnqueuer(Protocol):
+    async def enqueue(self, message: RequestMessage):
         pass
 
-class ResponseQueue(Queue[ResponseMessage]):
-    def put_response_data(self, data: Any):
-        self.put(ResponseMessage(ResponseMessageKind.SERVER_RESPONSE_DATA, data))
 
-    def put_state_update(self, state: ConnectionState):
-        self.put(ResponseMessage(ResponseMessageKind.STATE_UPDATE, state))
+class _RequestMessageQueue(PriorityQueue[RequestMessage]):
+    pass
 
-
-class RequestQueue(PriorityQueue[RequestMessage]):
-    def put_request_data(self, data: Any):
-        self.put(RequestMessage(RequestMessageKind.SEND_DATA, data))
-
-
-class Transport(MessageSender, MessageGetter):
-    def __init__(self):
-        self._response_queue = ResponseQueue()
-        self._request_queue = RequestQueue()
-
-    @property
-    def response_queue(self) -> ResponseQueue:
-        return self._response_queue
-
-    @property
-    def request_queue(self) -> RequestQueue:
-        return self._request_queue
+class ReponseMessageFactory:
+    def create_state_update(self, state: ConnectionState) -> ResponseMessage:
+        return ResponseMessage(ResponseMessageKind.STATE_UPDATE, state)
     
-    def send_request(self, message: RequestMessage):
-        self._request_queue.put(message)
-    
-    def send_response(self, message: ResponseMessage):
-        self._response_queue.put(message)
-        
-    def get_request(self) -> RequestMessage:
-        return self._request_queue.get(False)
-    
-    def get_response(self) -> ResponseMessage:
-        return self._response_queue.get()
+    def create_response_data(self, data: Any) -> ResponseMessage:
+        return ResponseMessage(ResponseMessageKind.SERVER_RESPONSE_DATA, data)

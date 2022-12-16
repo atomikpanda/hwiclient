@@ -1,35 +1,75 @@
-from typing import Callable
-from .watcher import ResponseWatcher
-from .login import LutronConnectionConfig
-from .thread import ResponseWatcherThread, TcpClientThread
-from .tcpclient import TcpClient
-from .message import MessageSender, RequestMessageKind, ResponseMessage, RequestMessage, Transport
+from typing import Tuple
+from .state import ConnectionState
+import asyncio
+from typing import Callable, Optional
+from .login import LutronConnectionConfig, LutronServerAddress
+from .message import _RequestMessageQueue, RequestEnqueuer, RequestMessageKind, ResponseMessage, RequestMessage, ResponseMessageKind
+from .adapter import DataToResponseAdapter
+from .tcp import TcpConnection
+import logging
+_LOGGER = logging.getLogger(__name__)
 
 
-class ConnectionCoordinator(MessageSender):
-    def __init__(self, tcp_client: TcpClient, join_client_thread: bool, on_received_response: Callable[[ResponseMessage], bool]) -> None:
-        self._join_client_thread = join_client_thread
-        self._client = tcp_client
-        self._transport = Transport()
-        self._response_watcher = ResponseWatcher(on_received_response)
+class ConnectionCoordinator(RequestEnqueuer):
+    _ENCODING = 'ascii'
 
-    def connect_and_attempt_login(self, config: LutronConnectionConfig):
-        self._start_threads(config)
+    def __init__(self, on_received_response: Callable[[ResponseMessage], bool]) -> None:
+        self._queue = _RequestMessageQueue()
+        self._on_received_response_callback = on_received_response
+        self._data_to_response_adapter = DataToResponseAdapter(self._ENCODING)
 
-    def _start_threads(self, config: LutronConnectionConfig):
-        self._response_watcher_thread = ResponseWatcherThread(
-            self._transport.response_queue,
-            self._response_watcher
-        )
-        self._tcp_client_thread = TcpClientThread(
-            self._client, config, self._transport)
-        self._response_watcher_thread.start()
-        self._tcp_client_thread.start()
-        if self._join_client_thread:
-            self._tcp_client_thread.join()
+    async def _put_priory_requests_in_queue(self):
+        mon_cmds = ["DLMON", "KBMON", "KLMON", "GSMON", "TEMON"]
+        msgs = [RequestMessage(RequestMessageKind.SEND_DATA, cmd, 1)
+                for cmd in mon_cmds]
+        for msg in msgs:
+            await self.enqueue(msg)
+            
+    @property
+    def connection_state(self) -> ConnectionState:
+        if self._connection != None:
+            return self._connection.connection_state
+        return ConnectionState.NOT_CONNECTED
 
-    def send_request(self, message: RequestMessage):
-        self._transport.send_request(message)
+    async def connect(self, server: LutronServerAddress) -> TcpConnection:
+        self._connection = TcpConnection(server, self._on_data_received, self._ENCODING)
+        await self._connection.open()
+        await self._put_priory_requests_in_queue()
+        self._connection.on_next_state_change.add_done_callback(
+            self._on_next_state)
+        return self._connection
 
-    def _send_response(self, message: ResponseMessage):
-        self._transport.response_queue.put(message)
+    def _on_next_state(self, future: asyncio.Future[Tuple[ConnectionState, ConnectionState]]) -> None:
+        _LOGGER.debug(f"ON NEXT STATE {future.result}")
+        pass
+
+    def _write_next_pending_request(self):
+        try:
+            request = self._queue.get_nowait()
+            self._connection.write_request(request)
+        except asyncio.QueueEmpty:
+            pass
+
+    def _on_data_received(self, data: bytes) -> None:
+        response = self._data_to_response_adapter.adapt(data)
+        print(response)
+
+
+        if response.kind == ResponseMessageKind.STATE_UPDATE:
+            self._connection.on_state_update(response.data)
+            
+        if response.kind == ResponseMessageKind.STATE_UPDATE and response.data == ConnectionState.CONNECTED_READY_FOR_COMMAND:
+            self._write_next_pending_request()
+
+        if response.kind == ResponseMessageKind.STATE_UPDATE and response.data == ConnectionState.DISCONNECTING:
+            self._on_received_response_callback(response)
+            # DISCONNECT
+        else:
+            self._on_received_response_callback(response)
+            
+    async def enqueue(self, message: RequestMessage):
+        await self._queue.put(message)
+        if self._connection._state == ConnectionState.CONNECTED_READY_FOR_COMMAND:
+            self._write_next_pending_request()
+    
+

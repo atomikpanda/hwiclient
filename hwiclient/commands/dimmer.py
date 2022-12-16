@@ -1,4 +1,5 @@
 from __future__ import annotations
+import asyncio
 from datetime import timedelta
 from .hub import SessionActionCommand, SessionRequestCommand
 from typing import TYPE_CHECKING
@@ -28,13 +29,14 @@ class FadeDimmer(SessionActionCommand):
         if not (self._intensity >= 0 and self._intensity <= 100):
             raise ValueError('intensity must be between 0 and 100')
 
-    def _perform_command(self, sender: CommandSender):
+    async def _perform_command(self, sender: CommandSender):
         args = [str(self._intensity),
                 Time(self._fade_time).formatted_hour_min_sec,
                 Time(self._delay_time).formatted_hour_min_sec]
         for addr in self._dimmer_adresses:
             args.append(addr.unencoded_with_brackets)
-        sender.send_raw_command("FADEDIM", *args)
+            
+        await sender.send_raw_command("FADEDIM", *args)
 
 
 class RequestDimmerLevel(SessionRequestCommand):
@@ -47,5 +49,5 @@ class RequestDimmerLevel(SessionRequestCommand):
         """RDL, <address>"""
         self._address = address
 
-    def _perform_command(self, sender: CommandSender):
-        sender.send_raw_command("RDL", self._address.unencoded_with_brackets)
+    async def _perform_command(self, sender: CommandSender):
+        await sender.send_raw_command("RDL", self._address.unencoded_with_brackets)
