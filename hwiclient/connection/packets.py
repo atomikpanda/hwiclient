@@ -18,6 +18,8 @@ class PacketBuffer:
             return True
         elif self._buffer.endswith(self._NEWLINE_BYTES):
             return True
+        elif self._buffer.endswith(self._LNET_BYTES):
+            return True
         return False
 
     @property
