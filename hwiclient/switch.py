@@ -4,8 +4,8 @@ from .commands.dimmer import FadeDimmer
 from .commands.hub import SessionActionCommand
 
 class SwitchDimmerType(DimmerDeviceType):
-    @property
-    def type_id(self) -> str:
+    @classmethod
+    def type_id(cls) -> str:
         return "SWITCH"
 
     @property

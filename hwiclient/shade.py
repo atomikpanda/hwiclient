@@ -10,8 +10,8 @@ if TYPE_CHECKING:
     from .hub import Hub
 
 class ShadeDimmerType(DimmerDeviceType):
-    @property
-    def type_id(self) -> str:
+    @classmethod
+    def type_id(cls) -> str:
         return "QED SHADE"
 
     @property
@@ -32,7 +32,7 @@ class SetShadePosition(HubActionCommand):
     """Sets the current position of cover where 0 means closed and 100 is fully open."""
 
     def __init__(self, shade: DimmerDevice, position: float):
-        assert type(shade.device_type) == ShadeDimmerType
+        assert shade.device_type.type_id() == ShadeDimmerType.type_id()
         self._fadedimmer = FadeDimmer(
             position, timedelta(), timedelta(), shade.address)
 

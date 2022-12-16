@@ -4,8 +4,8 @@ class LightDimmerActions(DimmerActions):
 
 
 class LightDimmerType(DimmerDeviceType):
-    @property
-    def type_id(self) -> str:
+    @classmethod
+    def type_id(cls) -> str:
         return "DIMMER"
 
     @property

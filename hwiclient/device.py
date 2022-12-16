@@ -78,9 +78,9 @@ class DeviceType(ABC):
     def __init__(self):
         pass
 
-    @property
+    @classmethod
     @abstractmethod
-    def type_id(self) -> str:
+    def type_id(cls) -> str:
         pass
 
     def __repr__(self) -> str:

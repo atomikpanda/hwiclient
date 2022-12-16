@@ -11,8 +11,8 @@ class FanDimmerType(DimmerDeviceType):
         # fan_speeds = 6
         self._fan_speeds = fan_speeds
 
-    @property
-    def type_id(self) -> str:
+    @classmethod
+    def type_id(cls) -> str:
         return "FAN"
 
     @property
@@ -29,7 +29,7 @@ class FanDimmerType(DimmerDeviceType):
 
 class SetFanLevel(FadeDimmer):
     def __init__(self, dimmer: DimmerDevice, fan_speeds: int, level: float):
-        assert type(dimmer.device_type) == FanDimmerType
+        assert dimmer.device_type.type_id() == FanDimmerType.type_id()
         super().__init__(self._safe_fan_level(fan_speeds, level),
                          timedelta(), timedelta(), dimmer.address)
         
