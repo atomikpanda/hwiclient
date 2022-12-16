@@ -42,6 +42,7 @@ class HomeworksHub(Hub):
 
     @property
     def ready_for_command(self) -> bool:
+        return True
         return self.connection_state == ConnectionState.CONNECTED_READY_FOR_COMMAND
 
     async def send_raw_command(self, name: str, *args: str):
