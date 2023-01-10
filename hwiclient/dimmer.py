@@ -23,11 +23,11 @@ class DimmerDeviceType(OutputDeviceType, ABC):
 
 
 class DimmerActions(Actions):
-    def set_level(self, level: float) -> SessionActionCommand:
-        return FadeDimmer(level, timedelta(), timedelta(), self._target.address)
+    def set_level(self, level: float, fade_time: timedelta = timedelta(), delay_time: timedelta = timedelta()) -> SessionActionCommand:
+        return FadeDimmer(level, fade_time, delay_time, self._target.address)
 
-    def turn_off(self) -> SessionActionCommand:
-        return FadeDimmer(0, timedelta(), timedelta(), self._target.address)
+    def turn_off(self, fade_time: timedelta = timedelta()) -> SessionActionCommand:
+        return FadeDimmer(0, fade_time, timedelta(), self._target.address)
 
     def turn_on(self) -> SessionActionCommand:
         return FadeDimmer(100, timedelta(), timedelta(), self._target.address)
