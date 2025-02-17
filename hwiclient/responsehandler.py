@@ -1,6 +1,7 @@
-from typing import Callable, Optional
-from .monitoring import MonitoringTopicNotifier, MonitoringTopic, MonitoringTopicKey
 import logging
+from typing import Callable, Optional
+
+from .monitoring import MonitoringTopic, MonitoringTopicKey, MonitoringTopicNotifier
 
 _LOGGER = logging.getLogger(__name__)
 

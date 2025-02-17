@@ -1,10 +1,9 @@
-import asyncio
+from asyncio import PriorityQueue
 from dataclasses import dataclass
 from enum import Enum
-from asyncio import AbstractEventLoop, PriorityQueue, Queue
-from typing import Any, Protocol, Tuple, TypeAlias
+from typing import Any, Protocol
+
 from .state import ConnectionState
-from abc import abstractmethod
 
 
 class ResponseMessageKind(Enum):
@@ -30,7 +29,7 @@ class RequestMessage:
     data: Any
     priority: int = 20
 
-    def __lt__(self, other: 'RequestMessage') -> int:
+    def __lt__(self, other: "RequestMessage") -> int:
         return self.priority < other.priority
 
 
@@ -42,9 +41,10 @@ class RequestEnqueuer(Protocol):
 class _RequestMessageQueue(PriorityQueue[RequestMessage]):
     pass
 
+
 class ReponseMessageFactory:
     def create_state_update(self, state: ConnectionState) -> ResponseMessage:
         return ResponseMessage(ResponseMessageKind.STATE_UPDATE, state)
-    
+
     def create_response_data(self, data: Any) -> ResponseMessage:
         return ResponseMessage(ResponseMessageKind.SERVER_RESPONSE_DATA, data)

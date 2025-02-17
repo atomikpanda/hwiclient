@@ -1,8 +1,11 @@
 from __future__ import annotations
-from enum import Enum
-from typing import Protocol, Any
+
 import logging
+from enum import Enum
+from typing import Any, Protocol
+
 _LOGGER = logging.getLogger(__name__)
+
 
 class MonitoringTopic(str, Enum):
     DIMMER_LEVEL_CHANGED = "DL"
@@ -52,7 +55,9 @@ class MonitoringTopicNotifier(TopicNotifier):
             if topic in self._subscribers:
                 self._subscribers[topic].remove(subscriber)
 
-    def notify_subscribers(self, topic: MonitoringTopic, data: dict[MonitoringTopicKey, Any]):
+    def notify_subscribers(
+        self, topic: MonitoringTopic, data: dict[MonitoringTopicKey, Any]
+    ):
         _LOGGER.warning(f"TOPIC {topic} data={data}")
         if topic in self._subscribers:
             for subscriber in self._subscribers[topic]:

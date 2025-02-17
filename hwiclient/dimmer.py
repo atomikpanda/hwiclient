@@ -1,14 +1,19 @@
 from __future__ import annotations
+
 from datetime import timedelta
-from typing import TYPE_CHECKING
+
+from .commands.dimmer import FadeDimmer, RequestDimmerLevel, StopDimmer
+from .commands.hub import (
+    HubCommand,
+    Sequence,
+    SessionActionCommand,
+    SessionRequestCommand,
+)
 from .device import *
-from .commands.dimmer import RequestDimmerLevel, FadeDimmer, StopDimmer
-from .commands.hub import SessionActionCommand, SessionRequestCommand, Sequence, HubCommand
-from .events import EventListener, DeviceEventKey, DeviceEventKind, DeviceEventSource
+from .events import DeviceEventKey, DeviceEventKind, DeviceEventSource, EventListener
 
 
 class DimmerDeviceType(OutputDeviceType, ABC):
-
     @property
     @abstractmethod
     def is_dimmable(self) -> bool:
@@ -23,7 +28,12 @@ class DimmerDeviceType(OutputDeviceType, ABC):
 
 
 class DimmerActions(Actions):
-    def set_level(self, level: float, fade_time: timedelta = timedelta(), delay_time: timedelta = timedelta()) -> SessionActionCommand:
+    def set_level(
+        self,
+        level: float,
+        fade_time: timedelta = timedelta(),
+        delay_time: timedelta = timedelta(),
+    ) -> SessionActionCommand:
         return FadeDimmer(level, fade_time, delay_time, self._target.address)
 
     def turn_off(self, fade_time: timedelta = timedelta()) -> SessionActionCommand:
@@ -42,8 +52,14 @@ class DimmerRequests(Requests):
 
 
 class DimmerDevice(OutputDevice, EventListener):
-
-    def __init__(self, name: str, zone_number: str, address: DeviceAddress, device_type: DimmerDeviceType, room: str):
+    def __init__(
+        self,
+        name: str,
+        zone_number: str,
+        address: DeviceAddress,
+        device_type: DimmerDeviceType,
+        room: str,
+    ):
         super().__init__(name=name, room=room, address=address)
         self._zone_number = zone_number
         self._device_type = device_type
@@ -149,10 +165,13 @@ class DimmerDeviceGroup(EventListener):
             new_level = self._calculate_group_level()
             self._level = new_level
             if new_level != old_level:
-                self._event_source.post(DeviceEventKind.DEVICE_GROUP_DIMMER_LEVEL_CHANGED, {
-                    DeviceEventKey.DEVICE_GROUP: self,
-                    DeviceEventKey.DIMMER_LEVEL: new_level
-                })
+                self._event_source.post(
+                    DeviceEventKind.DEVICE_GROUP_DIMMER_LEVEL_CHANGED,
+                    {
+                        DeviceEventKey.DEVICE_GROUP: self,
+                        DeviceEventKey.DIMMER_LEVEL: new_level,
+                    },
+                )
 
         # forward events to group's event_source
         self._event_source.post(DeviceEventKind(kind), data)

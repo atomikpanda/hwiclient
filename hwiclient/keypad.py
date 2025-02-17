@@ -1,18 +1,14 @@
 from __future__ import annotations
-from .events import DeviceEventSource, DeviceEventKey, DeviceEventKind, EventListener
-from enum import IntEnum
 
-from .device import Device, DeviceAddress
-from .dimmer import DimmerDeviceGroup, DimmerDevice
-from abc import ABC, abstractmethod, abstractproperty
 import logging
-from typing import Optional
-from dataclasses import dataclass
-from .device import InputDevice
+from enum import IntEnum
+from typing import Collection, Optional
+
 from .commands.hub import HubRequestCommand
-from .commands.keypad import RequestKeypadLedStates, KeypadButtonPress
-from collections.abc import Sequence
-from .utils import HwiUtils
+from .commands.keypad import RequestKeypadLedStates
+from .device import DeviceAddress, InputDevice
+from .dimmer import DimmerDevice, DimmerDeviceGroup
+from .events import DeviceEventKey, DeviceEventKind, DeviceEventSource, EventListener
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,12 +20,12 @@ class KeypadLedState(IntEnum):
     FLASH_2 = 3
 
 
-class KeypadLedStates(Sequence):
+class KeypadLedStates(Collection[KeypadLedState]):
     def __init__(self, states_str: str = "000000000000000000000000"):
         if len(states_str) != 24:
             raise ValueError("LED states string must be 24 characters long")
 
-        self._states = []
+        self._states = list[KeypadLedState]()
         for index, char in enumerate(states_str):
             if char == "0" or char == "1" or char == "2" or char == "3":
                 self._states.append(KeypadLedState(int(char)))
@@ -39,10 +35,10 @@ class KeypadLedStates(Sequence):
         if len(self._states) != 24:
             raise ValueError("Invalid keypad led state string")
 
-    def __getitem__(self, index) -> KeypadLedState:
+    def __getitem__(self, index: int) -> KeypadLedState:
         return self._states[index]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._states)
 
 
@@ -176,7 +172,7 @@ class Keypad(InputDevice, EventListener):
 
     def on_event(self, kind: str, data: dict):
         if kind == DeviceEventKind.KEYPAD_LED_STATES_CHANGED:
-            old_states = self._led_states
+            # old_states = self._led_states
             self._led_states = data[DeviceEventKey.KEYPAD_LED_STATES]
             # SUPER HELPFUL FOR DEBUGGING
             _LOGGER.warning(self.debug_description())
@@ -203,9 +199,9 @@ class ButtonBuilder(object):
         self._zones.append(zone)
 
     def build(self) -> KeypadButton:
-        assert self._name != None
-        assert self._number != None
-        assert self._keypad != None
+        assert self._name is not None
+        assert self._number is not None
+        assert self._keypad is not None
         return KeypadButton(
             name=self._name,
             number=self._number,
@@ -234,9 +230,9 @@ class KeypadBuilder(object):
         self._buttons.append(builder)
 
     def build(self) -> Keypad:
-        assert self._name != None
-        assert self._address != None
-        assert self._room != None
+        assert self._name is not None
+        assert self._address is not None
+        assert self._room is not None
         return Keypad(
             name=self._name,
             address=self._address,

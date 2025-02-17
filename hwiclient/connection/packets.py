@@ -1,8 +1,8 @@
 class PacketBuffer:
-    _LOGIN_BYTES = b'LOGIN: '
-    _LNET_BYTES = b'\r\nLNET> '
-    _NEWLINE_BYTES = b'\r\n'
-    _EMPTY_BYTES = b''
+    _LOGIN_BYTES = b"LOGIN: "
+    _LNET_BYTES = b"\r\nLNET> "
+    _NEWLINE_BYTES = b"\r\n"
+    _EMPTY_BYTES = b""
 
     def __init__(self) -> None:
         self._buffer = self._EMPTY_BYTES

@@ -1,15 +1,25 @@
-
 import asyncio
-from .hub import Hub
-from typing import Any, TYPE_CHECKING, Callable, Iterable, Optional, Type
-from .repos import DeviceRepository
-from .connection.state import ConnectionState
-from .connection.message import RequestMessage, RequestMessageKind, ResponseMessage, ResponseMessageKind
-from .connection.login import LutronServerAddress
-from .connection.tcp import TcpConnection
-from .connection.coordinator import ConnectionCoordinator
+from typing import Any
+
 from .commands.hub import HubCommand
-from .monitoring import MonitoringTopicKey, MonitoringTopicNotifier, TopicSubscriber, MonitoringTopic
+from .connection.coordinator import ConnectionCoordinator
+from .connection.login import LutronServerAddress
+from .connection.message import (
+    RequestMessage,
+    RequestMessageKind,
+    ResponseMessage,
+    ResponseMessageKind,
+)
+from .connection.state import ConnectionState
+from .connection.tcp import TcpConnection
+from .hub import Hub
+from .monitoring import (
+    MonitoringTopic,
+    MonitoringTopicKey,
+    MonitoringTopicNotifier,
+    TopicSubscriber,
+)
+from .repos import DeviceRepository
 from .responsehandler import ServerResponseDataHandler
 
 
@@ -20,8 +30,8 @@ class HomeworksHub(Hub):
         self._devices = DeviceRepository(homeworks_config, self)
         self._coordinator = ConnectionCoordinator(self._handle_response)
         self._response_data_handler = ServerResponseDataHandler(
-            self._monitoring_topic_notifier)
-
+            self._monitoring_topic_notifier
+        )
 
     def _handle_response(self, response: ResponseMessage) -> bool:
         if response.kind == ResponseMessageKind.STATE_UPDATE:
@@ -47,18 +57,20 @@ class HomeworksHub(Hub):
 
     async def send_raw_command(self, name: str, *args: str):
         if len(args) > 0:
-            data = name+","+",".join(args)
+            data = name + "," + ",".join(args)
         else:
             data = name
-        await self._coordinator.enqueue(RequestMessage(
-            RequestMessageKind.SEND_COMMAND, data))
+        await self._coordinator.enqueue(
+            RequestMessage(RequestMessageKind.SEND_COMMAND, data)
+        )
 
     async def connect(self, server: LutronServerAddress) -> TcpConnection:
         return await self._coordinator.connect(server)
 
     async def disconnect(self):
-        await self._coordinator.enqueue(RequestMessage(
-            RequestMessageKind.DISCONNECT, None))
+        await self._coordinator.enqueue(
+            RequestMessage(RequestMessageKind.DISCONNECT, None)
+        )
 
     async def enqueue_command(self, command: HubCommand):
         # TODO: actually use a queue
@@ -70,5 +82,7 @@ class HomeworksHub(Hub):
     def unsubscribe(self, subscriber: TopicSubscriber, *topics: MonitoringTopic):
         self._monitoring_topic_notifier.unsubscribe(subscriber, *topics)
 
-    def notify_subscribers(self, topic: MonitoringTopic, data: dict[MonitoringTopicKey, Any]):
+    def notify_subscribers(
+        self, topic: MonitoringTopic, data: dict[MonitoringTopicKey, Any]
+    ):
         self._monitoring_topic_notifier.notify_subscribers(topic, data)

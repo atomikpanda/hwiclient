@@ -1,8 +1,7 @@
 import re
 
-    
-class HwiUtils(object):
 
+class HwiUtils(object):
     @staticmethod
     def calculate_zones_brightness_percent(zones):
         num_zones = len(zones)
@@ -32,12 +31,16 @@ class HwiUtils(object):
 
     @staticmethod
     def shade_address_components(shade_addr):
-        return re.findall("0?(\\d{1,2}):0?(\\d{1,2}):0?(\\d{1,2}):0?(\\d{1,2})", shade_addr)[0]
+        return re.findall(
+            "0?(\\d{1,2}):0?(\\d{1,2}):0?(\\d{1,2}):0?(\\d{1,2})", shade_addr
+        )[0]
 
     @staticmethod
     def zone_address_components(zone_addr):
         comp = re.findall(
-            "0?(\\d{1,2}):0?(\\d{1,2}):0?(\\d{1,2}):0?(\\d{1,2}):0?(\\d{1,2})", zone_addr)
+            "0?(\\d{1,2}):0?(\\d{1,2}):0?(\\d{1,2}):0?(\\d{1,2}):0?(\\d{1,2})",
+            zone_addr,
+        )
         if len(comp) == 0:
             return HwiUtils.shade_address_components(zone_addr)
         else:
@@ -45,7 +48,7 @@ class HwiUtils(object):
 
     @staticmethod
     def _remove_prefix(text, prefix):
-        return text[text.startswith(prefix) and len(prefix):]
+        return text[text.startswith(prefix) and len(prefix) :]
 
     @staticmethod
     def encode_keypad_address(keypad_addr):
@@ -64,7 +67,11 @@ class HwiUtils(object):
 
     @staticmethod
     def encode_keypad_button(button):
-        return HwiUtils.encode_keypad_address(button.keypad.address) + "_btn_" + str(button.number)
+        return (
+            HwiUtils.encode_keypad_address(button.keypad.address)
+            + "_btn_"
+            + str(button.number)
+        )
 
     @staticmethod
     def decode_keypad_address(encoded_keypad_addr):
@@ -80,5 +87,3 @@ class HwiUtils(object):
     def decode_zone_address(encoded_zone_addr):
         removed = HwiUtils._remove_prefix(encoded_zone_addr, "zone_")
         return "[" + (":".join(removed.split("_"))) + "]"
-
-

@@ -1,8 +1,10 @@
-from datetime import timedelta
-from .dimmer import DimmerDeviceType, DimmerDevice
-from .commands.hub import HubCommand
-from .commands.dimmer import FadeDimmer
 from bisect import bisect_left
+from datetime import timedelta
+
+from .commands.dimmer import FadeDimmer
+from .commands.hub import HubCommand
+from .dimmer import DimmerDevice, DimmerDeviceType
+
 
 class FanDimmerType(DimmerDeviceType):
     def __init__(self, fan_speeds: int):
@@ -30,17 +32,20 @@ class FanDimmerType(DimmerDeviceType):
 class SetFanLevel(FadeDimmer):
     def __init__(self, dimmer: DimmerDevice, fan_speeds: int, level: float):
         assert dimmer.device_type.type_id() == FanDimmerType.type_id()
-        super().__init__(self._safe_fan_level(fan_speeds, level),
-                         timedelta(), timedelta(), dimmer.address)
-        
+        super().__init__(
+            self._safe_fan_level(fan_speeds, level),
+            timedelta(),
+            timedelta(),
+            dimmer.address,
+        )
+
     def _safe_fan_level(self, num_speeds_excluding_zero: int, level: float):
-        increment = 100.0/float(num_speeds_excluding_zero)
+        increment = 100.0 / float(num_speeds_excluding_zero)
         safe_speeds = []
         for i in range(0, int(num_speeds_excluding_zero) + 1):
             safe_speeds.append(increment * i)
 
         return self._take_closest(safe_speeds, level)
-
 
     def _take_closest(self, brackets: list[float], number: float):
         """

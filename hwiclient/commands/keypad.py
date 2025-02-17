@@ -1,14 +1,11 @@
 from abc import ABC
-from .hub import SessionActionCommand, SessionRequestCommand
-from typing import TYPE_CHECKING
-
 
 from ..device import DeviceAddress
+from .hub import SessionActionCommand, SessionRequestCommand
 from .sender import CommandSender
 
 
 class KeypadButtonCommand(SessionActionCommand, ABC):
-
     def __init__(self, command_name: str, address: DeviceAddress, button: int):
         self._command_name = command_name
         self._address = address
@@ -17,12 +14,15 @@ class KeypadButtonCommand(SessionActionCommand, ABC):
             raise ValueError("Invalid button number: %d" % button)
 
     async def _perform_command(self, sender: CommandSender):
-        await sender.send_raw_command(self._command_name, self._address.unencoded_with_brackets, str(
-            self._button_number))
+        await sender.send_raw_command(
+            self._command_name,
+            self._address.unencoded_with_brackets,
+            str(self._button_number),
+        )
 
 
 class KeypadButtonPress(KeypadButtonCommand):
-    """Simulates the press action of a keypad button. 
+    """Simulates the press action of a keypad button.
     This does not simulate a true keypad button press that might include an immediate release."""
 
     def __init__(self, address: DeviceAddress, button: int):
@@ -38,7 +38,7 @@ class KeypadButtonRelease(KeypadButtonCommand):
 
 
 class KeypadButtonHold(KeypadButtonCommand):
-    """Simulates the hold action of a keypad button. 
+    """Simulates the hold action of a keypad button.
     This does not simulate a true keypad button hold that will include a preceeding press"""
 
     def __init__(self, address: DeviceAddress, button: int):
@@ -46,7 +46,7 @@ class KeypadButtonHold(KeypadButtonCommand):
 
 
 class KeypadButtonDoubleTap(KeypadButtonCommand):
-    """Simulates the double tap action of a keypad button. 
+    """Simulates the double tap action of a keypad button.
     This does not simulate a true keypad button double tap that is preceeded by a press and release, and followed by a release"""
 
     def __init__(self, address: DeviceAddress, button: int):
@@ -54,11 +54,13 @@ class KeypadButtonDoubleTap(KeypadButtonCommand):
 
 
 class RequestKeypadLedStates(SessionRequestCommand):
-    """Queries the system for the state of the LEDs on a specified keypad. 
+    """Queries the system for the state of the LEDs on a specified keypad.
     24 led digits will be returned regardless of the number of physical leds on the keypad."""
 
     def __init__(self, keypad_address: DeviceAddress):
         self._keypad_address = keypad_address
 
     async def _perform_command(self, sender: CommandSender):
-        await sender.send_raw_command("RKLS", self._keypad_address.unencoded_with_brackets)
+        await sender.send_raw_command(
+            "RKLS", self._keypad_address.unencoded_with_brackets
+        )

@@ -1,10 +1,11 @@
 from __future__ import annotations
-from datetime import timedelta
-from .dimmer import DimmerActions, DimmerDevice, DimmerDeviceType
-from .commands.hub import HubActionCommand, SessionActionCommand
-from .commands.dimmer import FadeDimmer, StopDimmer
 
+from datetime import timedelta
 from typing import TYPE_CHECKING
+
+from .commands.dimmer import FadeDimmer, StopDimmer
+from .commands.hub import SessionActionCommand
+from .dimmer import DimmerActions, DimmerDevice, DimmerDeviceType
 
 if TYPE_CHECKING:
     from .hub import Hub

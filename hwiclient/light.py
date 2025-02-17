@@ -1,4 +1,6 @@
-from .dimmer import DimmerActions, DimmerDeviceType, DimmerDevice
+from .dimmer import DimmerActions, DimmerDevice, DimmerDeviceType
+
+
 class LightDimmerActions(DimmerActions):
     pass
 

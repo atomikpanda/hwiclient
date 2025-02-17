@@ -1,14 +1,15 @@
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from datetime import timedelta
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from .queue import CommandQueue
 
 from .sender import CommandSender
 
-class HubCommand(ABC):
 
+class HubCommand(ABC):
     def __init__(self):
         pass
 
@@ -53,5 +54,3 @@ class Sequence(HubCommand):
     async def _perform_command(self, sender: CommandSender):
         for cmd in self._commands:
             await cmd.execute(sender)
-
-

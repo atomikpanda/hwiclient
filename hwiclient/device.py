@@ -1,20 +1,19 @@
 from abc import ABC, abstractmethod
+
 from .utils import HwiUtils
 
 
-class DeviceAddress():
-
+class DeviceAddress:
     def __init__(self, unencoded: str):
-
-        if unencoded.startswith('['):
-            unencoded = unencoded.removeprefix('[')
-            assert unencoded.endswith(']')
-            unencoded = unencoded.removesuffix(']')
+        if unencoded.startswith("["):
+            unencoded = unencoded.removeprefix("[")
+            assert unencoded.endswith("]")
+            unencoded = unencoded.removesuffix("]")
 
         self._unencoded = self._standardize(unencoded)
 
     def _standardize(self, unencoded: str) -> str:
-        if unencoded.count(':') == 2:
+        if unencoded.count(":") == 2:
             return ":".join(HwiUtils.keypad_address_components(unencoded))
         else:
             return ":".join(HwiUtils.zone_address_components(unencoded))
@@ -25,11 +24,11 @@ class DeviceAddress():
 
     @property
     def unencoded_with_brackets(self) -> str:
-        return '[' + self._unencoded + ']'
+        return "[" + self._unencoded + "]"
 
     @property
     def encoded(self) -> str:
-        if self.unencoded.count(':') == 2:
+        if self.unencoded.count(":") == 2:
             return HwiUtils.encode_keypad_address(self.unencoded)
         else:
             return HwiUtils.encode_zone_address(self.unencoded)
@@ -74,7 +73,6 @@ class InputDevice(Device, ABC):
 
 
 class DeviceType(ABC):
-
     def __init__(self):
         pass
 

@@ -1,17 +1,14 @@
-import xml.etree.ElementTree as ET
-from typing import Any, Optional, Tuple, TYPE_CHECKING
-
-
-import yaml
 import logging
+import xml.etree.ElementTree as ET
+from typing import Optional, Tuple
+
 _LOGGER = logging.getLogger(__name__)
 
 
 class HwiYamlParser(object):
-    
     def __init__(self) -> None:
         pass
-    
+
     # def parse_yaml(self, yaml_dict) -> dict[str, Any]:
     #     raise DeprecationWarning
     #     try:
@@ -61,7 +58,6 @@ class HwiYamlParser(object):
 
     # def new_parse_yaml(self, yaml_dict):
     #     pass
-                
 
     # def _parse_zone(self, raw_zone: dict) -> DimmerDevice:
     #     number = raw_zone["number"]
@@ -101,12 +97,11 @@ def find_text(element: ET.Element, tag_name: str) -> Optional[str]:
 
 
 class HwiXmlParser(object):
-
     def __init__(self, remap: dict):
         self._remap = remap
 
     def _remap_str(self, input: Optional[str], key: str) -> Optional[str]:
-        if not (key in self._remap):
+        if key not in self._remap:
             return input
         if input == None:
             return None
@@ -115,102 +110,105 @@ class HwiXmlParser(object):
         return input
 
     def _remap_room_name(self, room_name: Optional[str]) -> Optional[str]:
-        return self._remap_str(room_name, key='room_names')
+        return self._remap_str(room_name, key="room_names")
 
     def _remap_button_name(self, button_name: Optional[str]) -> Optional[str]:
-        return self._remap_str(button_name, key='button_names')
+        return self._remap_str(button_name, key="button_names")
 
     def _resolve_zone_addr_from_number(self, zone_num: str) -> Optional[str]:
-        element = self._root.find(
-            f'.//Area/Room/Outputs/Output[ZoneNum="{zone_num}"]')
+        element = self._root.find(f'.//Area/Room/Outputs/Output[ZoneNum="{zone_num}"]')
         if element == None:
             return None
-        zone_addr = element.find('Address')
+        zone_addr = element.find("Address")
         if zone_addr == None:
             return None
         return zone_addr.text
 
     def _parse_output(self, output: ET.Element) -> Tuple[str, dict]:
-        output_name = find_text(output, 'Name')
-        output_type = find_text(output, 'Type')
-        output_address = find_text(output, 'Address')
-        output_zone_num = find_text(output, 'ZoneNum')
+        output_name = find_text(output, "Name")
+        output_type = find_text(output, "Type")
+        output_address = find_text(output, "Address")
+        output_zone_num = find_text(output, "ZoneNum")
         assert output_type != None
         # print(f"\t\tOutput: {output_name}, {output_type}")
 
-        device_dict = {'name': output_name,
-                       'address': f"{output_address}",
-                       'number': f"{output_zone_num}"}
+        device_dict = {
+            "name": output_name,
+            "address": f"{output_address}",
+            "number": f"{output_zone_num}",
+        }
         return (output_type, device_dict)
 
     def _parse_keypad_button_zone(self, zone_num_tag: ET.Element) -> dict:
         zone_num_text = zone_num_tag.text
         assert zone_num_text != None
         # Resolve the zone address from the zone number
-        zone_addr_text = self._resolve_zone_addr_from_number(
-            zone_num_text)
+        zone_addr_text = self._resolve_zone_addr_from_number(zone_num_text)
         assert zone_addr_text != None
 
-        return {'number': zone_num_text, 'address': zone_addr_text}
+        return {"number": zone_num_text, "address": zone_addr_text}
 
     def _parse_keypad_button_zones(self, button: ET.Element) -> list[dict]:
         zones = []
-        actions = button.find('Actions')
+        actions = button.find("Actions")
         assert actions != None
-        presets = actions.find('Presets')
+        presets = actions.find("Presets")
         assert presets != None
-        first_preset = presets.find('Preset')
+        first_preset = presets.find("Preset")
         if first_preset != None:
-            for zone_num_tag in first_preset.findall('Output/ZoneNum'):
+            for zone_num_tag in first_preset.findall("Output/ZoneNum"):
                 zones.append(self._parse_keypad_button_zone(zone_num_tag))
         return zones
 
     def _parse_keypad_button(self, button: ET.Element) -> Optional[dict]:
-        button_name = self._remap_button_name(find_text(button, 'Name'))
-        number_str = find_text(button, 'Number')
-        button_type = find_text(button, 'Type')
-        if button_type == 'Not Programmed':
+        button_name = self._remap_button_name(find_text(button, "Name"))
+        number_str = find_text(button, "Number")
+        button_type = find_text(button, "Type")
+        if button_type == "Not Programmed":
             return None
 
         zones = self._parse_keypad_button_zones(button)
 
         assert number_str != None
         number = int(number_str)
-        return {'name': button_name, 'number': number, 'zones': zones}
+        return {"name": button_name, "number": number, "zones": zones}
 
     def _parse_keypad_buttons(self, buttons_tag: ET.Element) -> list[dict]:
         buttons = []
-        for button in buttons_tag.iter('Button'):
+        for button in buttons_tag.iter("Button"):
             parsed_btn = self._parse_keypad_button(button)
             if parsed_btn != None:
                 buttons.append(parsed_btn)
         return buttons
 
     def _parse_keypad_device(self, dev: ET.Element, control_station_name: str) -> dict:
-
-        keypad_address = find_text(dev, 'Address')
+        keypad_address = find_text(dev, "Address")
         keypad_dict = {
-            'name': control_station_name, 'address': keypad_address, 'buttons': []}
-        buttons_tag = dev.find('Buttons')
+            "name": control_station_name,
+            "address": keypad_address,
+            "buttons": [],
+        }
+        buttons_tag = dev.find("Buttons")
         assert buttons_tag != None
         buttons = self._parse_keypad_buttons(buttons_tag)
-        keypad_dict['buttons'] += buttons
+        keypad_dict["buttons"] += buttons
         return keypad_dict
 
     def _parse_control_station(self, input: ET.Element) -> Optional[Tuple[str, dict]]:
-        control_station_name = find_text(input, 'Name')
+        control_station_name = find_text(input, "Name")
         assert control_station_name != None
-        control_station_devices = input.find('Devices')
+        control_station_devices = input.find("Devices")
         assert control_station_devices != None
-        dev = control_station_devices.find('Device')
+        dev = control_station_devices.find("Device")
         assert dev != None
-        dev_type = find_text(dev, 'Type')
+        dev_type = find_text(dev, "Type")
         # dev_type 'DIMMER/SWITCH' is basic wall dimmer switch
-        if dev_type == 'KEYPAD':
+        if dev_type == "KEYPAD":
             return (dev_type, self._parse_keypad_device(dev, control_station_name))
         else:
             _LOGGER.warning(
-                f'Skipped unsupported device type {dev_type} found in ControlStation: {control_station_name}')
+                f"Skipped unsupported device type {dev_type} found in ControlStation: {control_station_name}"
+            )
             return None
 
     def parse_file(self, xml_file) -> dict:
@@ -218,44 +216,49 @@ class HwiXmlParser(object):
         self._root = tree.getroot()
 
         devices = {}
-        for area in self._root.iter('Area'):
-            area_name = find_text(area, 'Name')
+        for area in self._root.iter("Area"):
+            area_name = find_text(area, "Name")
             # print(f"Area: {area_name}")
-            for room in area.iter('Room'):
-                room_devices = {'dimmers': [], 'fans': [],
-                                'shades': [], 'switches': [], 'keypads': []}
-                room_name = self._remap_room_name(find_text(room, 'Name'))
+            for room in area.iter("Room"):
+                room_devices = {
+                    "dimmers": [],
+                    "fans": [],
+                    "shades": [],
+                    "switches": [],
+                    "keypads": [],
+                }
+                room_name = self._remap_room_name(find_text(room, "Name"))
 
                 # print(f"\tRoom: {room_name}")
-                outputs = room.find('Outputs')
+                outputs = room.find("Outputs")
                 if outputs != None:
-                    for output in outputs.iter('Output'):
+                    for output in outputs.iter("Output"):
                         output_type, device_dict = self._parse_output(output)
-                        if output_type == 'DIMMER':
-                            room_devices['dimmers'].append(device_dict)
-                        elif output_type == 'SWITCH':
-                            room_devices['switches'].append(device_dict)
-                        elif output_type == 'FAN':
-                            room_devices['fans'].append(device_dict)
-                        elif output_type == 'QED SHADE':
-                            room_devices['shades'].append(device_dict)
+                        if output_type == "DIMMER":
+                            room_devices["dimmers"].append(device_dict)
+                        elif output_type == "SWITCH":
+                            room_devices["switches"].append(device_dict)
+                        elif output_type == "FAN":
+                            room_devices["fans"].append(device_dict)
+                        elif output_type == "QED SHADE":
+                            room_devices["shades"].append(device_dict)
                         else:
-                            raise ValueError(
-                                f'Unknown output type: {output_type}')
+                            raise ValueError(f"Unknown output type: {output_type}")
 
-                inputs = room.find('Inputs')
+                inputs = room.find("Inputs")
                 if inputs != None:
-                    for input in inputs.iter('ControlStation'):
+                    for input in inputs.iter("ControlStation"):
                         dev_tuple = self._parse_control_station(input)
                         if dev_tuple == None:
                             continue
                         dev_type, dev_dict = dev_tuple
                         if dev_type == "KEYPAD":
-                            room_devices['keypads'].append(dev_dict)
+                            room_devices["keypads"].append(dev_dict)
 
                 if room_name in devices:
                     dict_to_merge = {
-                        k: v for k, v in room_devices.items() if len(v) != 0}
+                        k: v for k, v in room_devices.items() if len(v) != 0
+                    }
                     dict_orig = devices[room_name]
                     for key, value in dict_to_merge.items():
                         if key not in dict_orig:
@@ -265,6 +268,7 @@ class HwiXmlParser(object):
                     devices[room_name] = dict_orig
                 else:
                     devices[room_name] = {
-                        k: v for k, v in room_devices.items() if len(v) != 0}
+                        k: v for k, v in room_devices.items() if len(v) != 0
+                    }
 
-        return {'devices': devices}
+        return {"devices": devices}
