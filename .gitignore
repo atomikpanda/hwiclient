@@ -2,3 +2,7 @@
 __pycache__
 build/
 *.egg-info/
+.DS_Store
+.pytest_cache/
+.venv
+.coverage

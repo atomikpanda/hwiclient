@@ -13,6 +13,7 @@ from .commands.hub import HubRequestCommand
 from .commands.keypad import RequestKeypadLedStates, KeypadButtonPress
 from collections.abc import Sequence
 from .utils import HwiUtils
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -30,10 +31,10 @@ class KeypadLedStates(Sequence):
 
         self._states = []
         for index, char in enumerate(states_str):
-            if char == '0' or char == '1' or char == '2' or char == '3':
+            if char == "0" or char == "1" or char == "2" or char == "3":
                 self._states.append(KeypadLedState(int(char)))
             else:
-                raise ValueError('invalid keypad led state char')
+                raise ValueError("invalid keypad led state char")
 
         if len(self._states) != 24:
             raise ValueError("Invalid keypad led state string")
@@ -49,8 +50,9 @@ class KeypadLedStates(Sequence):
 
 
 class KeypadButton(EventListener):
-
-    def __init__(self, name: str, number: int, device_group: DimmerDeviceGroup, keypad: Keypad):
+    def __init__(
+        self, name: str, number: int, device_group: DimmerDeviceGroup, keypad: Keypad
+    ):
         self._name = name
         self._number = number
         self._device_group = device_group
@@ -84,14 +86,22 @@ class KeypadButton(EventListener):
                 _LOGGER.warning(self._name + " is off")
 
     def debug_description(self):
-        description = "[Button name: "+self._name+", number: " + \
-            str(self.number)+", is_on: " + str(self.is_led_on) + "]"
+        description = (
+            "[Button name: "
+            + self._name
+            + ", number: "
+            + str(self.number)
+            + ", is_on: "
+            + str(self.is_led_on)
+            + "]"
+        )
         return description
 
 
 class Keypad(InputDevice, EventListener):
-
-    def __init__(self, address: DeviceAddress, name: str, room: str, buttons: list[ButtonBuilder]):
+    def __init__(
+        self, address: DeviceAddress, name: str, room: str, buttons: list[ButtonBuilder]
+    ):
         super().__init__(address=address, name=name, room=room)
         self._led_states: KeypadLedStates = KeypadLedStates()
         self._buttons_by_number: dict[int, KeypadButton] = {}
@@ -99,13 +109,17 @@ class Keypad(InputDevice, EventListener):
         for builder in buttons:
             builder.set_keypad(self)
             btn = builder.build()
-            self._event_source.register_listener(btn, {DeviceEventKey.BUTTON_NUMBER: btn.number},
-                                                 DeviceEventKind.KEYPAD_BUTTON_PRESSED,
-                                                 DeviceEventKind.KEYPAD_BUTTON_DOUBLE_TAPPED,
-                                                 DeviceEventKind.KEYPAD_BUTTON_HELD,
-                                                 DeviceEventKind.KEYPAD_BUTTON_RELEASED)
             self._event_source.register_listener(
-                btn, None, DeviceEventKind.KEYPAD_LED_STATES_CHANGED)
+                btn,
+                {DeviceEventKey.BUTTON_NUMBER: btn.number},
+                DeviceEventKind.KEYPAD_BUTTON_PRESSED,
+                DeviceEventKind.KEYPAD_BUTTON_DOUBLE_TAPPED,
+                DeviceEventKind.KEYPAD_BUTTON_HELD,
+                DeviceEventKind.KEYPAD_BUTTON_RELEASED,
+            )
+            self._event_source.register_listener(
+                btn, None, DeviceEventKind.KEYPAD_LED_STATES_CHANGED
+            )
             self._buttons_by_number[btn.number] = btn
 
     @property
@@ -146,7 +160,17 @@ class Keypad(InputDevice, EventListener):
         for key, btn in self._buttons_by_number.items():
             btns += "\t" + btn.debug_description() + "\r\n"
 
-        return "\r\n[Keypad name: "+self.name+", address: "+self.address.unencoded+", encoded_address: "+self.address.encoded+", buttons: "+btns+"]\r\n"
+        return (
+            "\r\n[Keypad name: "
+            + self.name
+            + ", address: "
+            + self.address.unencoded
+            + ", encoded_address: "
+            + self.address.encoded
+            + ", buttons: "
+            + btns
+            + "]\r\n"
+        )
 
     pass
 
@@ -182,7 +206,12 @@ class ButtonBuilder(object):
         assert self._name != None
         assert self._number != None
         assert self._keypad != None
-        return KeypadButton(name=self._name, number=self._number, device_group=DimmerDeviceGroup(self._zones), keypad=self._keypad)
+        return KeypadButton(
+            name=self._name,
+            number=self._number,
+            device_group=DimmerDeviceGroup(self._zones),
+            keypad=self._keypad,
+        )
 
 
 class KeypadBuilder(object):
@@ -208,4 +237,9 @@ class KeypadBuilder(object):
         assert self._name != None
         assert self._address != None
         assert self._room != None
-        return Keypad(name=self._name, address=self._address, buttons=self._buttons, room=self._room)
+        return Keypad(
+            name=self._name,
+            address=self._address,
+            buttons=self._buttons,
+            room=self._room,
+        )
