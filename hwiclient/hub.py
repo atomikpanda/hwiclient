@@ -22,8 +22,15 @@ class Hub(TopicNotifier, CommandSender, CommandQueue, Protocol):
     async def connect(self, server: LutronServerAddress) -> TcpConnection:
         pass
 
-    devices: DeviceRepository
-    connection_state: ConnectionState
+    @property
+    @abstractmethod
+    def devices(self) -> DeviceRepository:
+        pass
+
+    @property
+    @abstractmethod
+    def connection_state(self) -> ConnectionState:
+        pass
 
     async def disconnect(self):
         pass

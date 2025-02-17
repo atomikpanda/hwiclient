@@ -72,7 +72,7 @@ class HomeworksHub(Hub):
             RequestMessage(RequestMessageKind.DISCONNECT, None)
         )
 
-    async def enqueue_command(self, command: HubCommand):
+    async def enqueue_command(self, command: HubCommand) -> None:
         # TODO: actually use a queue
         return asyncio.create_task(command._perform_command(self))
 

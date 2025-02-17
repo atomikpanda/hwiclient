@@ -1,8 +1,10 @@
+from abc import abstractmethod
 from typing import Protocol
 
 from .hub import HubCommand
 
 
 class CommandQueue(Protocol):
-    async def enqueue_command(self, command: HubCommand):
+    @abstractmethod
+    async def enqueue_command(self, command: HubCommand) -> None:
         pass
