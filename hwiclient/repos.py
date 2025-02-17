@@ -27,7 +27,7 @@ class DeviceRepository(TopicSubscriber):
         self._notifier = notifier
         self._notifier.subscribe(self, MonitoringTopic.DIMMER_LEVEL_CHANGED)
         self._event_source = DeviceEventSource()
-        if homeworks_config != None:
+        if homeworks_config is not None:
             self._add_from_yaml_dict(homeworks_config)
 
     def on_topic_update(self, topic: MonitoringTopic, data: dict):
@@ -126,14 +126,14 @@ class DeviceRepository(TopicSubscriber):
         self, zone_name: str, room_name: Optional[str] = None
     ) -> Optional[DimmerDevice]:
         for zone_address, zone in self._dimmers.items():
-            if zone.name == zone_name and room_name == None:
+            if zone.name == zone_name and room_name is None:
                 return zone
             elif zone.name == zone_name and zone.room == room_name:
                 return zone
         return None
 
     def all_dimmer_devices(self, room_name: Optional[str] = None) -> list[DimmerDevice]:
-        if room_name == None:
+        if room_name is None:
             return list(self._dimmers.values())
         return [dimmer for dimmer in self._dimmers.values() if dimmer.room == room_name]
 
