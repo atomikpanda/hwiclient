@@ -44,8 +44,8 @@ class TcpConnection:
 
     async def attempt_login(self, credentials: LutronCredentials) -> asyncio.Future:
         if (
-            self._protocol == None
-            or self._transport == None
+            self._protocol is None
+            or self._transport is None
             or self._state != ConnectionState.CONNECTED_READY_FOR_LOGIN_ATTEMPT
         ):
             raise ConnectionError(
@@ -59,7 +59,7 @@ class TcpConnection:
         self._on_data_received_callback(data)
 
     def write_str(self, data: str):
-        if self._transport == None:
+        if self._transport is None:
             raise ConnectionError("Cannot write when transport is None")
         _LOGGER.debug("WRITE: %s" % data)
         self._transport.write(f"{data}\r\n".encode(self._encoding))
@@ -97,6 +97,6 @@ class TcpConnection:
 
     def close(self):
         _LOGGER.debug("TcpConnection close() requested. Closing transport")
-        if self._transport != None:
+        if self._transport is not None:
             self._transport.close()
             self._transport = None

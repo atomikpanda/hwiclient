@@ -4,7 +4,7 @@ import re
 class HwiUtils(object):
     @staticmethod
     def calculate_zones_brightness_percent(zones):
-        num_zones = len(zones)
+        # num_zones = len(zones)
         max_percent = 0
         for zone in zones:
             if zone.is_dimmable:

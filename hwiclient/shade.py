@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import TYPE_CHECKING
 
 from .commands.dimmer import FadeDimmer, StopDimmer
 from .commands.hub import SessionActionCommand
+from .commands.sender import CommandSender
 from .dimmer import DimmerActions, DimmerDevice, DimmerDeviceType
-
-if TYPE_CHECKING:
-    from .hub import Hub
 
 
 class ShadeDimmerType(DimmerDeviceType):
@@ -45,8 +42,8 @@ class SetShadePosition(SessionActionCommand):
         assert shade.device_type.type_id() == ShadeDimmerType.type_id()
         self._fadedimmer = FadeDimmer(position, timedelta(), timedelta(), shade.address)
 
-    async def _perform_command(self, hub: Hub):
-        await self._fadedimmer._perform_command(hub)
+    async def _perform_command(self, sender: CommandSender):
+        await self._fadedimmer._perform_command(sender)
 
 
 class OpenShade(SetShadePosition):

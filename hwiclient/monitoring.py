@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import logging
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Protocol
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class MonitoringTopic(str, Enum):
+class MonitoringTopic(StrEnum):
     DIMMER_LEVEL_CHANGED = "DL"
     KEYPAD_BUTTON_PRESS = "KBP"
     KEYPAD_BUTTON_RELEASE = "KBR"
@@ -16,7 +16,7 @@ class MonitoringTopic(str, Enum):
     KEYPAD_LED_STATES_CHANGED = "KLS"
 
 
-class MonitoringTopicKey(str, Enum):
+class MonitoringTopicKey(StrEnum):
     ADDRESS = "address"
     BUTTON = "button"
     LEVEL = "level"

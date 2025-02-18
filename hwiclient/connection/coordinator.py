@@ -36,7 +36,7 @@ class ConnectionCoordinator(RequestEnqueuer):
 
     @property
     def connection_state(self) -> ConnectionState:
-        if self._connection != None:
+        if self._connection is not None:
             return self._connection.connection_state
         return ConnectionState.NOT_CONNECTED
 

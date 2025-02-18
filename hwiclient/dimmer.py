@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from datetime import timedelta
 
 from .commands.dimmer import FadeDimmer, RequestDimmerLevel, StopDimmer
@@ -9,7 +10,7 @@ from .commands.hub import (
     SessionActionCommand,
     SessionRequestCommand,
 )
-from .device import *
+from .device import Actions, DeviceAddress, OutputDevice, OutputDeviceType, Requests
 from .events import DeviceEventKey, DeviceEventKind, DeviceEventSource, EventListener
 
 

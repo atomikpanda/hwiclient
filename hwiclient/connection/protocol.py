@@ -17,12 +17,12 @@ class LutronClientProtocol(asyncio.Protocol):
         self._on_data_received = on_data_received
         self.on_connection_lost = on_connection_lost
 
-    def connection_made(self, transport: asyncio.Transport) -> None:
+    def connection_made(self, transport: asyncio.BaseTransport) -> None:
         self._transport = transport
 
-    def data_received(self, packet: bytes) -> None:
-        self._buffer.append(packet)
-        _LOGGER.debug(f"packet `{packet}`")
+    def data_received(self, data: bytes) -> None:
+        self._buffer.append(data)
+        _LOGGER.debug(f"packet `{data}`")
         _LOGGER.debug(f"buffer: `{self._buffer.data}")
         _LOGGER.debug(f"is_complete: `{self._buffer.is_complete}`")
         if self._buffer.is_complete:
