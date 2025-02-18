@@ -78,17 +78,17 @@ class DeviceEventSource(EventSource):
     def __init__(self):
         self._listeners: dict[DeviceEventKind, list[EventListener]] = {}
 
-    def _passes_filter(self, data, filter: dict) -> bool:
-        result = True
-        for key, value in filter.items():
-            if key not in data:
-                return False
+    # def _passes_filter(self, data, filter: dict) -> bool:
+    #     result = True
+    #     for key, value in filter.items():
+    #         if key not in data:
+    #             return False
 
-            if data[key] == value:
-                result = result and True
-            else:
-                return False
-        return result
+    #         if data[key] == value:
+    #             result = result and True
+    #         else:
+    #             return False
+    #     return result
 
     def post(self, kind: DeviceEventKind, data: dict):
         if kind not in self._listeners:
