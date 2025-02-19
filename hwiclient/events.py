@@ -90,6 +90,12 @@ class DeviceEventSource(EventSource):
     #             return False
     #     return result
 
+    def is_listener_registered(self, listener: EventListener, kind: str) -> bool:
+        event_kind = DeviceEventKind(kind)
+        if event_kind is None:
+            return False
+        return listener in self._listeners[event_kind]
+
     def post(self, kind: DeviceEventKind, data: dict):
         if kind not in self._listeners:
             return

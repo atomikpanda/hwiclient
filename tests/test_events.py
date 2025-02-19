@@ -16,7 +16,7 @@ def test_register_listener():
     source = DeviceEventSource()
     listener = TestEventListener()
     source.register_listener(listener, None, DeviceEventKind.DIMMER_LEVEL_CHANGED)
-    assert listener in source._listeners[DeviceEventKind.DIMMER_LEVEL_CHANGED]
+    assert source.is_listener_registered(listener, DeviceEventKind.DIMMER_LEVEL_CHANGED)
 
 
 def test_unregister_listener():
@@ -24,7 +24,9 @@ def test_unregister_listener():
     listener = TestEventListener()
     source.register_listener(listener, None, DeviceEventKind.DIMMER_LEVEL_CHANGED)
     source.unregister_listener(listener, DeviceEventKind.DIMMER_LEVEL_CHANGED)
-    assert listener not in source._listeners[DeviceEventKind.DIMMER_LEVEL_CHANGED]
+    assert not source.is_listener_registered(
+        listener, DeviceEventKind.DIMMER_LEVEL_CHANGED
+    )
 
 
 def test_post_event(mocker):

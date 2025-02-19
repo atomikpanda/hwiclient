@@ -47,6 +47,16 @@ class SessionRequestCommand(HubRequestCommand, ABC):
 
 
 class Sequence(HubCommand):
+    """
+    A command that executes a sequence of other HubCommands.
+
+    Attributes:
+        commands (list[HubCommand]): A list of HubCommand instances to be executed in sequence.
+
+    Methods:
+        _perform_command(sender: CommandSender): Asynchronously executes each command in the sequence with the given sender.
+    """
+
     def __init__(self, commands: list[HubCommand]):
         super().__init__()
         self._commands = commands
