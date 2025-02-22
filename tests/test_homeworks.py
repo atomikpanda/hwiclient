@@ -1,13 +1,14 @@
+import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from hwiclient.commands.hub import HubCommand
+from hwiclient.commands.sender import CommandSender
 from hwiclient.connection.login import LutronServerAddress
 from hwiclient.connection.message import ResponseMessage, ResponseMessageKind
-from hwiclient.events import DeviceEventKey, DeviceEventKind
 from hwiclient.homeworks import HomeworksHub
-from hwiclient.monitoring import MonitoringTopic, TopicSubscriber
+from hwiclient.monitoring import MonitoringTopic, MonitoringTopicKey, TopicSubscriber
 
 
 @pytest.fixture
@@ -75,35 +76,58 @@ async def test_send_raw_command(homeworks_hub):
     homeworks_hub._coordinator.enqueue.assert_awaited_once()
 
 
+class TestSubscriber(TopicSubscriber):
+    def __init__(self):
+        self.notified = False
+        self.data = None
+
+    def on_topic_update(self, topic: MonitoringTopic, data: dict):
+        self.notified = True
+        self.data = data
+
+
 async def test_enqueue_command(homeworks_hub):
-    command = MagicMock(spec=HubCommand)
-    command._perform_command = AsyncMock()
+    class TestCommand(HubCommand):
+        def __init__(self):
+            self.executed = False
+
+        async def _perform_command(self, sender: CommandSender):
+            self.executed = True
+
+    command = TestCommand()
     await homeworks_hub.enqueue_command(command)
-    command._perform_command.assert_awaited_once_with(homeworks_hub)
+    # Delay
+    await asyncio.sleep(1)
+    assert command.executed
 
 
 def test_subscribe(homeworks_hub):
-    subscriber = MagicMock(spec=TopicSubscriber)
-    topic = MagicMock(spec=MonitoringTopic)
+    subscriber = TestSubscriber()
+    topic = MonitoringTopic.DIMMER_LEVEL_CHANGED
     homeworks_hub.subscribe(subscriber, topic)
-    homeworks_hub._monitoring_topic_notifier.subscribe.assert_called_once_with(
-        subscriber, topic
-    )
+    assert subscriber in homeworks_hub._monitoring_topic_notifier._subscribers[topic]
 
 
 def test_unsubscribe(homeworks_hub):
-    subscriber = MagicMock(spec=TopicSubscriber)
-    topic = MagicMock(spec=MonitoringTopic)
+    subscriber = TestSubscriber()
+    topic = MonitoringTopic.KEYPAD_BUTTON_DOUBLE_TAP
+    homeworks_hub.subscribe(subscriber, topic)
+    homeworks_hub.notify_subscribers(topic, {MonitoringTopicKey.BUTTON: 1})
+    assert subscriber.notified
+    assert subscriber.data == {MonitoringTopicKey.BUTTON: 1}
+    subscriber.notified = False
+    subscriber.data = None
     homeworks_hub.unsubscribe(subscriber, topic)
-    homeworks_hub._monitoring_topic_notifier.unsubscribe.assert_called_once_with(
-        subscriber, topic
-    )
+    homeworks_hub.notify_subscribers(topic, {MonitoringTopicKey.BUTTON: 2})
+    assert not subscriber.notified
+    assert subscriber.data is None
 
 
 def test_notify_subscribers(homeworks_hub):
-    topic = DeviceEventKind.KEYPAD_BUTTON_PRESSED
-    data = {DeviceEventKey.BUTTON_NUMBER: 1}
+    subscriber = TestSubscriber()
+    topic = MonitoringTopic.KEYPAD_BUTTON_PRESS
+    data = {MonitoringTopicKey.BUTTON: 1}
+    homeworks_hub.subscribe(subscriber, topic)
     homeworks_hub.notify_subscribers(topic, data)
-    homeworks_hub._monitoring_topic_notifier.notify_subscribers.assert_called_once_with(
-        topic, data
-    )
+    assert subscriber.notified
+    assert subscriber.data == data
